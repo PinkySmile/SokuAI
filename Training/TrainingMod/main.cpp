@@ -21,9 +21,11 @@ static void (SokuLib::KeymapManager::*s_origKeymapManager_SetInputs)();
 static SOCKET sock;
 static bool hello = false;
 static bool stop = false;
+static bool gameFinished = false;
 static bool displayed = true;
 static bool player = false;
 static bool begin = true;
+static bool cancel = false;
 
 static bool startRequested = false;
 static bool inputsReceived = false;
@@ -131,6 +133,10 @@ void __fastcall KeymapManagerSetInputs(SokuLib::KeymapManager *This)
 		memset(&This->input, 0, sizeof(This->input));
 		This->input.a = 1;
 	}
+	if (gameFinished) {
+		memset(&This->input, 0, sizeof(This->input));
+		This->input.a = 1;
+	}
 	if (startRequested) {
 		memset(&This->input, 0, sizeof(This->input));
 		This->input.a = 1;
@@ -219,6 +225,8 @@ static void startGame(const Trainer::StartGamePacket &startData)
 
 	memset(&lastInputs.first, 0, sizeof(lastInputs.first));
 	memset(&lastInputs.second, 0, sizeof(lastInputs.second));
+	gameFinished = false;
+	cancel = false;
 	SokuLib::leftPlayerInfo.character = startData.leftCharacter;
 	palettes.first = startData.leftPalette;
 	SokuLib::leftPlayerInfo.deck = 0;
@@ -323,6 +331,7 @@ static void handlePacket(const Trainer::Packet &packet, unsigned int size)
 		return;
 	case Trainer::OPCODE_GAME_CANCEL:
 		CHECK_PACKET_SIZE(Trainer::Opcode, size);
+		cancel = true;
 		return;
 	case Trainer::OPCODE_SOUND:
 		CHECK_PACKET_SIZE(Trainer::SoundPacket, size);
@@ -398,20 +407,32 @@ int __fastcall CSelect_OnProcess(T *This) {
 int __fastcall CBattle_OnProcess(T *This) {
 	auto &battle = SokuLib::getBattleMgr();
 	int ret = (This->*s_origCBattle_OnProcess)();
-	Trainer::GameFramePacket packet;
+	Trainer::GameEndedPacket endPacket;
 
-	fillState(battle.leftCharacterManager, battle.rightCharacterManager, packet.leftState);
-	fillState(battle.rightCharacterManager, battle.leftCharacterManager, packet.rightState);
-	packet.op = Trainer::OPCODE_GAME_FRAME;
-	packet.weatherTimer = SokuLib::weatherCounter;
-	packet.displayedWeather = SokuLib::displayedWeather;
-	if (SokuLib::activeWeather != SokuLib::WEATHER_CLEAR && SokuLib::displayedWeather == SokuLib::WEATHER_AURORA)
-		packet.activeWeather = SokuLib::WEATHER_AURORA;
-	else
-		packet.activeWeather = SokuLib::activeWeather;
-	inputsReceived = false;
-	send(sock, reinterpret_cast<const char *>(&packet), sizeof(packet), 0);
-	while (!stop && !inputsReceived);
+	if (!gameFinished) {
+		Trainer::GameFramePacket packet;
+
+		fillState(battle.leftCharacterManager, battle.rightCharacterManager, packet.leftState);
+		fillState(battle.rightCharacterManager, battle.leftCharacterManager, packet.rightState);
+		packet.op = Trainer::OPCODE_GAME_FRAME;
+		packet.weatherTimer = SokuLib::weatherCounter;
+		packet.displayedWeather = SokuLib::displayedWeather;
+		if (SokuLib::activeWeather != SokuLib::WEATHER_CLEAR && SokuLib::displayedWeather == SokuLib::WEATHER_AURORA)
+			packet.activeWeather = SokuLib::WEATHER_AURORA;
+		else
+			packet.activeWeather = SokuLib::activeWeather;
+		inputsReceived = false;
+		send(sock, reinterpret_cast<const char *>(&packet), sizeof(packet), 0);
+		gameFinished |= battle.leftCharacterManager.score == 2 || battle.rightCharacterManager.score == 2;
+		while (!cancel && !gameFinished && !stop && !inputsReceived);
+	}
+	if (ret == SokuLib::SCENE_SELECT || cancel) {
+		gameFinished = false;
+		endPacket.op = Trainer::OPCODE_GAME_ENDED;
+		endPacket.winner = 0 + (battle.leftCharacterManager.score == 2) + (battle.rightCharacterManager.score) * 2;
+		send(sock, reinterpret_cast<const char *>(&endPacket), sizeof(endPacket), 0);
+		return SokuLib::SCENE_TITLE;
+	}
 	if (stop)
 		return -1;
 	return ret;

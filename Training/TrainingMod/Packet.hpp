@@ -157,7 +157,7 @@ namespace Trainer
 
 	struct GameEndedPacket {
 		Opcode op;
-		bool leftIsWinner;
+		unsigned char winner;
 	};
 
 	union Packet {

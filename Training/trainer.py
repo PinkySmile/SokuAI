@@ -24,7 +24,7 @@ while True:
     client, remote = sock.accept()
     print(remote, "connected")
     try:
-        result = None
+        result = False
         input_thread = threading.Thread(target=add_input)
         input_thread.daemon = True
         input_thread.start()
@@ -34,7 +34,11 @@ while True:
             if not byte:
                 break
             if byte[0] == 8:
-                client.send(b'\x09\0\3\0\3')
+                result = not result
+                if result:
+                    client.send(b'\x09\0\0\0\0')
+                else:
+                    client.send(b'\x09\4\0\0\0')
             else:
                 print("Received", byte)
     except:
