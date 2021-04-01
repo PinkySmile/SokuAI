@@ -109,7 +109,7 @@ namespace Trainer
 		unsigned short healingCharm;
 		unsigned short swordOfRapture;
 		unsigned char score;
-		short hand[5];
+		unsigned char hand[5];
 		unsigned short cardGauge;
 		SokuLib::Skill skills[15];
 		unsigned char fanLevel;

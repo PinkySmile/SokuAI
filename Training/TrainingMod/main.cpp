@@ -261,8 +261,10 @@ static void threadLoop(void *)
 		Trainer::Packet packet;
 		int received = ::recv(sock, reinterpret_cast<char *>(&packet), sizeof(packet), 0);
 
-		if (received == 0)
+		if (received == 0) {
+			stop = true;
 			return;
+		}
 		handlePacket(packet, received);
 	}
 }
