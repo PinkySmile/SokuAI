@@ -34,31 +34,27 @@ static unsigned char decks[40];
 static std::pair<unsigned char, unsigned char> palettes;
 static std::optional<Trainer::Input> leftInputs;
 static std::optional<Trainer::Input> rightInputs;
-static const std::map<std::string, std::vector<unsigned short>> characterSpellCards{
-	{"alice", {200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211}},
-	{"aya", {200, 201, 202, 203, 205, 206, 207, 208, 211, 212}},
-	{"chirno", {200, 201, 202, 203, 204, 205, 206, 207, 208, 210, 213}},
-	{"iku", {200, 201, 202, 203, 206, 207, 208, 209, 210, 211}},
-	{"komachi", {200, 201, 202, 203, 204, 205, 206, 207, 211}},
-	{"marisa", {200, 202, 203, 204, 205, 206, 207, 208, 209, 211, 212, 214, 215, 219}},
-	{"meirin", {200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 211}},
-	{"patchouli", {200, 201, 202, 203, 204, 205, 206, 207, 210, 211, 212, 213}},
-	{"reimu", {200, 201, 204, 206, 207, 208, 209, 210, 214, 219}},
-	{"remilia", {200, 201, 202, 203, 204, 205, 206, 207, 208, 209}},
-	{"sakuya", {200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212}},
-	{"sanae", {200, 201, 202, 203, 204, 205, 206, 207, 210}},
-	{"suika", {200, 201, 202, 203, 204, 205, 206, 207, 208, 212}},
-	{"suwako", {200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 212}},
-	{"tenshi", {200, 201, 202, 203, 204, 205, 206, 207, 208, 209}},
-	{"udonge", {200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211}},
-	{"utsuho", {200, 201, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214}},
-	{"youmu", {200, 201, 202, 203, 204, 205, 206, 207, 208, 212}},
-	{"yukari", {200, 201, 202, 203, 204, 205, 206, 207, 208, 215}},
-	{"yuyuko", {200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 219}}
-};
-static const char *characterSokuNames[] = {
-	"reimu", "marisa", "sakuya", "alice", "patchouli", "youmu", "remilia", "yuyuko", "yukari",
-	"suika", "udonge", "aya", "komachi", "iku", "tenshi", "sanae", "chirno", "meirin", "utsuho", "suwako"
+static const std::map<SokuLib::Character, std::vector<unsigned short>> characterSpellCards{
+	{SokuLib::CHARACTER_ALICE, {200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211}},
+	{SokuLib::CHARACTER_AYA, {200, 201, 202, 203, 205, 206, 207, 208, 211, 212}},
+	{SokuLib::CHARACTER_CIRNO, {200, 201, 202, 203, 204, 205, 206, 207, 208, 210, 213}},
+	{SokuLib::CHARACTER_IKU, {200, 201, 202, 203, 206, 207, 208, 209, 210, 211}},
+	{SokuLib::CHARACTER_KOMACHI, {200, 201, 202, 203, 204, 205, 206, 207, 211}},
+	{SokuLib::CHARACTER_MARISA, {200, 202, 203, 204, 205, 206, 207, 208, 209, 211, 212, 214, 215, 219}},
+	{SokuLib::CHARACTER_MEILING, {200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 211}},
+	{SokuLib::CHARACTER_PATCHOULI, {200, 201, 202, 203, 204, 205, 206, 207, 210, 211, 212, 213}},
+	{SokuLib::CHARACTER_REIMU, {200, 201, 204, 206, 207, 208, 209, 210, 214, 219}},
+	{SokuLib::CHARACTER_REMILIA, {200, 201, 202, 203, 204, 205, 206, 207, 208, 209}},
+	{SokuLib::CHARACTER_SAKUYA, {200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212}},
+	{SokuLib::CHARACTER_SANAE, {200, 201, 202, 203, 204, 205, 206, 207, 210}},
+	{SokuLib::CHARACTER_SUIKA, {200, 201, 202, 203, 204, 205, 206, 207, 208, 212}},
+	{SokuLib::CHARACTER_SUWAKO, {200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 212}},
+	{SokuLib::CHARACTER_TENSHI, {200, 201, 202, 203, 204, 205, 206, 207, 208, 209}},
+	{SokuLib::CHARACTER_REISEN, {200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211}},
+	{SokuLib::CHARACTER_UTSUHO, {200, 201, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214}},
+	{SokuLib::CHARACTER_YOUMU, {200, 201, 202, 203, 204, 205, 206, 207, 208, 212}},
+	{SokuLib::CHARACTER_YUKARI, {200, 201, 202, 203, 204, 205, 206, 207, 208, 215}},
+	{SokuLib::CHARACTER_YUYUKO, {200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 219}}
 };
 
 void __fastcall KeymapManagerSetInputs(SokuLib::KeymapManager *This)
@@ -75,6 +71,22 @@ void __fastcall KeymapManagerSetInputs(SokuLib::KeymapManager *This)
 		SokuLib::leftPlayerInfo.palette = palettes.first;
 		SokuLib::rightPlayerInfo.palette = palettes.second;
 	}
+	//static bool lasts = false;
+	//if (SokuLib::sceneId == SokuLib::SCENE_SELECTCL || SokuLib::sceneId == SokuLib::SCENE_SELECTSV) {
+	//	memset(&This->input, 0, sizeof(This->input));
+	//	This->input.a = lasts;
+
+	//	lasts = !lasts;
+
+	//	SokuLib::leftPlayerInfo.character = SokuLib::CHARACTER_REMILIA;
+	//	SokuLib::leftPlayerInfo.palette = 0;
+	//	SokuLib::leftPlayerInfo.deck = 0;
+	//	SokuLib::rightPlayerInfo.character = SokuLib::CHARACTER_REMILIA;
+	//	SokuLib::rightPlayerInfo.palette = 5;
+	//	SokuLib::rightPlayerInfo.deck = 0;
+	//	*(unsigned *)(*(unsigned *)0x8A000C + 0x2438) = 13;// Stage
+	//	*(unsigned *)(*(unsigned *)0x8A000C + 0x244C) = 13;// Music
+	//}
 }
 
 void __stdcall loadDeckData(char *charName, void *csvFile, SokuLib::deckInfo &deck, int param4, SokuLib::mVC9Dequeue<short> &newDeck)
@@ -83,21 +95,6 @@ void __stdcall loadDeckData(char *charName, void *csvFile, SokuLib::deckInfo &de
 		newDeck[i] = decks[player * 20 + i];
 	player = !player;
 	return s_origLoadDeckData(charName, csvFile, deck, param4, newDeck);
-
-	//auto &entry = characterSpellCards[charName];
-
-	//printf("Loading deck for %s (%i spell cards)\n", charName, entry.size());
-	//for (int i = 0; i < entry.size(); i++)
-	//	newDeck[i] = entry[i];
-	//puts("Fake deck generated");
-	//newDeck.size = entry.size();
-	//s_origLoadDeckData(charName, csvFile, deck, param4, newDeck);
-
-	//puts("Placing old deck back");
-	//for (int i = 0; i < 20; i++)
-	//	newDeck[i] = originalDeck[i];
-	//newDeck.size = 20;
-	//puts("Work done !");
 }
 
 int dummyFunction()
@@ -158,8 +155,7 @@ static void startGame(const Trainer::StartGamePacket &startData)
 static bool isDeckValid(SokuLib::Character chr, const unsigned char (&deck)[20])
 {
 	std::map<unsigned short, unsigned char> found;
-	const char *name = characterSokuNames[chr];
-	const auto &validCards = characterSpellCards.at(name);
+	const auto &validCards = characterSpellCards.at(chr);
 	const unsigned char maxSkillId = 112 + (chr == SokuLib::CHARACTER_PATCHOULI) * 3;
 
 	for (auto card : deck) {
