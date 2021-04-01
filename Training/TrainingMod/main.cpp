@@ -19,7 +19,6 @@ void (__stdcall *s_origLoadDeckData)(char *, void *, SokuLib::deckInfo &, int, S
 static void (SokuLib::KeymapManager::*s_origKeymapManager_SetInputs)();
 
 static SOCKET sock;
-static std::thread thread;
 static bool hello = false;
 static bool stop = false;
 static bool displayed = true;
@@ -463,10 +462,7 @@ extern "C" __declspec(dllexport) bool Initialize(HMODULE hMyModule, HMODULE hPar
 }
 
 extern "C" int APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved) {
-	if (fdwReason == DLL_PROCESS_DETACH) {
+	if (fdwReason == DLL_PROCESS_DETACH)
 		stop = true;
-		if (thread.joinable())
-			thread.join();
-	}
 	return TRUE;
 }
