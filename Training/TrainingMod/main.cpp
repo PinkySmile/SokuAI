@@ -4,6 +4,7 @@
 #include <thread>
 #include <optional>
 #include <map>
+#include <process.h>
 #include "Packet.hpp"
 #include "Exceptions.hpp"
 
