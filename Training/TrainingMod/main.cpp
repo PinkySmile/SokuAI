@@ -7,7 +7,7 @@
 #include "Packet.hpp"
 #include "Exceptions.hpp"
 
-#define CHECK_PACKET_SIZE(requested_type, size) if (size != sizeof(requested_type)) return sendError(Trainer::ERROR_INVALID_PACKET);
+#define CHECK_PACKET_SIZE(requested_type, size) if (size != sizeof(requested_type)) return sendError(Trainer::ERROR_INVALID_PACKET)
 
 struct T {};
 static DWORD s_origCBattle_OnRenderAddr;
@@ -27,13 +27,14 @@ static bool player = false;
 static bool begin = true;
 
 static bool startRequested = false;
+static bool inputsReceived = false;
 
 static unsigned counter = 0;
 static unsigned tps = 60;
 static unsigned char decks[40];
 static std::pair<unsigned char, unsigned char> palettes;
-static std::optional<Trainer::Input> leftInputs;
-static std::optional<Trainer::Input> rightInputs;
+static std::pair<Trainer::Input, Trainer::Input> inputs;
+static std::pair<SokuLib::KeyInput, SokuLib::KeyInput> lastInputs;
 static const std::map<SokuLib::Character, std::vector<unsigned short>> characterSpellCards{
 	{SokuLib::CHARACTER_ALICE, {200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211}},
 	{SokuLib::CHARACTER_AYA, {200, 201, 202, 203, 205, 206, 207, 208, 211, 212}},
@@ -57,6 +58,72 @@ static const std::map<SokuLib::Character, std::vector<unsigned short>> character
 	{SokuLib::CHARACTER_YUYUKO, {200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 219}}
 };
 
+void updateInput(SokuLib::KeyInput &old, const Trainer::Input &n) {
+	old.a = n.A ? (old.a + 1) : 0;
+	old.b = n.B ? (old.b + 1) : 0;
+	old.c = n.C ? (old.c + 1) : 0;
+	old.d = n.D ? (old.d + 1) : 0;
+	old.changeCard = n.SW ? (old.changeCard + 1) : 0;
+	old.spellcard = n.SC ? (old.spellcard + 1) : 0;
+
+	if (n.H == 0)
+		old.horizontalAxis = 0;
+	else if (n.H > 0)
+		old.horizontalAxis = max(0, old.horizontalAxis) + 1;
+	else
+		old.horizontalAxis = min(0, old.horizontalAxis) - 1;
+
+	if (n.V == 0)
+		old.verticalAxis = 0;
+	else if (n.V > 0)
+		old.verticalAxis = max(0, old.verticalAxis) + 1;
+	else
+		old.verticalAxis = min(0, old.verticalAxis) - 1;
+}
+
+static void fillState(const SokuLib::CharacterManager &source, const SokuLib::CharacterManager &opponent, Trainer::CharacterState &destination)
+{
+	destination.direction = source.objectBase.direction;
+	destination.opponentRelativePos.x = source.objectBase.position.x - opponent.objectBase.position.x;
+	destination.opponentRelativePos.y = source.objectBase.position.y - opponent.objectBase.position.y;
+	destination.distToLeftCorner = source.objectBase.position.x - 40;
+	destination.distToRightCorner = 1240 - source.objectBase.position.x;
+	destination.action = source.objectBase.action;
+	destination.actionBlockId = source.objectBase.actionBlockId;
+	destination.animationCounter = source.objectBase.animationCounter;
+	destination.animationSubFrame = source.objectBase.animationSubFrame;
+	destination.frameCount = source.objectBase.frameCount;
+	destination.comboDamage = source.combo.damages;
+	destination.comboLimit = source.combo.limit;
+	destination.airBorne = source.objectBase.frameData.frameFlags.airborne;
+	destination.hp = source.objectBase.hp;
+	destination.airDashCount = source.airdashCount;
+	destination.spirit = source.currentSpirit;
+	destination.maxSpirit = source.maxSpirit;
+	destination.untech = source.untech;
+	destination.healingCharm = source.healingCharmTimeLeft;
+	destination.swordOfRapture = source.swordOfRaptureDebuffTimeLeft;
+	destination.score = source.score;
+	memset(destination.hand, 0xFF, sizeof(destination.hand));
+	if (SokuLib::activeWeather != SokuLib::WEATHER_MOUNTAIN_VAPOR)
+		for (int i = 0; i < source.deckInfos.hand.size; i++)
+			destination.hand[i] = source.deckInfos.hand[i].id;
+	destination.cardGauge = (SokuLib::activeWeather != SokuLib::WEATHER_MOUNTAIN_VAPOR ? source.deckInfos.cardGauge : -1);
+	memcpy(destination.skills, source.skillMap, sizeof(destination.skills));
+	destination.fanLevel = source.tenguFans;
+	destination.dropInvulTimeLeft = source.dropInvulTimeLeft;
+	destination.superArmorTimeLeft = 0;//TODO: source.superArmorTimeLeft;
+	destination.superArmorHp = 0;//TODO: source.superArmorHp;
+	destination.milleniumVampireTimeLeft = source.milleniumVampireTime;
+	destination.philosoferStoneTimeLeft = source.philosophersStoneTime;
+	destination.sakuyasWorldTimeLeft = source.sakuyasWorldTime;
+	destination.privateSquareTimeLeft = source.privateSquare;
+	destination.orreriesTimeLeft = source.orreriesTimeLeft;
+	destination.mppTimeLeft = source.missingPurplePowerTimeLeft;
+	destination.kanakoCooldown = source.kanakoTimeLeft;
+	destination.suwakoCooldown = source.suwakoTimeLeft;
+}
+
 void __fastcall KeymapManagerSetInputs(SokuLib::KeymapManager *This)
 {
 	(This->*s_origKeymapManager_SetInputs)();
@@ -70,6 +137,22 @@ void __fastcall KeymapManagerSetInputs(SokuLib::KeymapManager *This)
 		This->input.a = 1;
 		SokuLib::leftPlayerInfo.palette = palettes.first;
 		SokuLib::rightPlayerInfo.palette = palettes.second;
+	}
+	if (SokuLib::sceneId == SokuLib::SCENE_BATTLE) {
+		auto &battle = SokuLib::getBattleMgr();
+		Trainer::Input *input;
+		SokuLib::KeyInput *lastInput;
+
+		if (This == battle.leftCharacterManager.keyManager->keymapManager) {
+			input = &inputs.first;
+			lastInput = &lastInputs.first;
+		} else if (This == battle.rightCharacterManager.keyManager->keymapManager) {
+			input = &inputs.second;
+			lastInput = &lastInputs.second;
+		} else
+			return;
+		updateInput(*lastInput, *input);
+		memcpy(&This->input, lastInput, sizeof(*lastInput));
 	}
 	//static bool lasts = false;
 	//if (SokuLib::sceneId == SokuLib::SCENE_SELECTCL || SokuLib::sceneId == SokuLib::SCENE_SELECTSV) {
@@ -105,7 +188,6 @@ int dummyFunction()
 static void sendError(Trainer::Errors code)
 {
 	Trainer::ErrorPacket packet;
-
 	packet.op = Trainer::OPCODE_ERROR;
 	packet.error = code;
 	::send(sock, reinterpret_cast<const char *>(&packet), sizeof(packet), 0);
@@ -136,6 +218,8 @@ static void startGame(const Trainer::StartGamePacket &startData)
 	SokuLib::waitForSceneChange();
 	SokuLib::setBattleMode(SokuLib::BATTLE_MODE_VSPLAYER, SokuLib::BATTLE_SUBMODE_PLAYING2);
 
+	memset(&lastInputs.first, 0, sizeof(lastInputs.first));
+	memset(&lastInputs.second, 0, sizeof(lastInputs.second));
 	SokuLib::leftPlayerInfo.character = startData.leftCharacter;
 	palettes.first = startData.leftPalette;
 	SokuLib::leftPlayerInfo.deck = 0;
@@ -204,6 +288,7 @@ static void handlePacket(const Trainer::Packet &packet, unsigned int size)
 	if (!hello && packet.op != Trainer::OPCODE_HELLO)
 		return sendError(Trainer::ERROR_HELLO_NOT_SENT);
 
+	//GAME_FRAME, GAME_INPUTS, GAME_CANCEL and GAME_ENDED
 	switch (packet.op) {
 	case Trainer::OPCODE_HELLO:
 		CHECK_PACKET_SIZE(Trainer::HelloPacket, size);
@@ -229,8 +314,9 @@ static void handlePacket(const Trainer::Packet &packet, unsigned int size)
 		return startGame(packet.startGame);
 	case Trainer::OPCODE_GAME_INPUTS:
 		CHECK_PACKET_SIZE(Trainer::GameInputPacket, size);
-		leftInputs  = packet.gameInput.left;
-		rightInputs = packet.gameInput.right;
+		inputs.first  = packet.gameInput.left;
+		inputs.second = packet.gameInput.right;
+		inputsReceived = true;
 		return;
 	case Trainer::OPCODE_DISPLAY:
 		CHECK_PACKET_SIZE(Trainer::DisplayPacket, size);
@@ -311,8 +397,22 @@ int __fastcall CSelect_OnProcess(T *This) {
 }
 
 int __fastcall CBattle_OnProcess(T *This) {
+	auto &battle = SokuLib::getBattleMgr();
 	int ret = (This->*s_origCBattle_OnProcess)();
+	Trainer::GameFramePacket packet;
 
+	fillState(battle.leftCharacterManager, battle.rightCharacterManager, packet.leftState);
+	fillState(battle.rightCharacterManager, battle.leftCharacterManager, packet.rightState);
+	packet.op = Trainer::OPCODE_GAME_FRAME;
+	packet.weatherTimer = SokuLib::weatherCounter;
+	packet.displayedWeather = SokuLib::displayedWeather;
+	if (SokuLib::activeWeather != SokuLib::WEATHER_CLEAR && SokuLib::displayedWeather == SokuLib::WEATHER_AURORA)
+		packet.activeWeather = SokuLib::WEATHER_AURORA;
+	else
+		packet.activeWeather = SokuLib::activeWeather;
+	inputsReceived = false;
+	send(sock, reinterpret_cast<const char *>(&packet), sizeof(packet), 0);
+	while (!stop && !inputsReceived);
 	if (stop)
 		return -1;
 	return ret;

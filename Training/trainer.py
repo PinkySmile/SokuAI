@@ -33,6 +33,9 @@ while True:
             byte = client.recv(1000)
             if not byte:
                 break
-            print("Received", byte)
+            if byte[0] == 8:
+                client.send(b'\x09\0\3\0\3')
+            else:
+                print("Received", byte)
     except:
         traceback.print_exc()

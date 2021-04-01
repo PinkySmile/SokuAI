@@ -91,8 +91,8 @@ namespace Trainer
 	struct CharacterState {
 		SokuLib::Direction direction;
 		SokuLib::Vector opponentRelativePos;
-		float distToBackCorner;
-		float distToFrontCorner;
+		float distToLeftCorner;
+		float distToRightCorner;
 		SokuLib::Action action;
 		unsigned short actionBlockId;
 		unsigned short animationCounter;
