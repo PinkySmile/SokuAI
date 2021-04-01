@@ -88,6 +88,14 @@ namespace Trainer
 		Errors error;
 	};
 
+	struct Object {
+		SokuLib::Direction direction;
+		SokuLib::Vector relativePosMe;
+		SokuLib::Vector relativePosOpponent;
+		SokuLib::Action action;
+		unsigned imageID;
+	};
+
 	struct CharacterState {
 		SokuLib::Direction direction;
 		SokuLib::Vector opponentRelativePos;
@@ -124,6 +132,7 @@ namespace Trainer
 		unsigned short mppTimeLeft;
 		unsigned short kanakoCooldown;
 		unsigned short suwakoCooldown;
+		unsigned char objectCount;
 	};
 
 	struct GameFramePacket {
@@ -133,6 +142,7 @@ namespace Trainer
 		SokuLib::Weather displayedWeather;
 		SokuLib::Weather activeWeather;
 		unsigned short weatherTimer;
+		Object objects[0];
 	};
 
 	union Input{

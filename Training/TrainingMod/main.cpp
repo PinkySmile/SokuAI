@@ -126,6 +126,17 @@ static void fillState(const SokuLib::CharacterManager &source, const SokuLib::Ch
 	destination.suwakoCooldown = source.suwakoTimeLeft;
 }
 
+static void fillState(const SokuLib::ObjectManager &object, const SokuLib::CharacterManager &source, const SokuLib::CharacterManager &opponent, Trainer::Object &destination)
+{
+	destination.direction = object.direction;
+	destination.relativePosMe.x = object.position.x - source.objectBase.position.x;
+	destination.relativePosMe.y = object.position.y - source.objectBase.position.y;
+	destination.relativePosOpponent.x = object.position.x - opponent.objectBase.position.x;
+	destination.relativePosOpponent.y = object.position.y - opponent.objectBase.position.y;
+	destination.action = object.action;
+	destination.imageID = object.image.number;
+}
+
 void __fastcall KeymapManagerSetInputs(SokuLib::KeymapManager *This)
 {
 	(This->*s_origKeymapManager_SetInputs)();
@@ -411,19 +422,28 @@ int __fastcall CBattle_OnProcess(T *This) {
 	Trainer::GameEndedPacket endPacket;
 
 	if (!gameFinished) {
-		Trainer::GameFramePacket packet;
+		size_t allocSize = sizeof(Trainer::GameFramePacket) + (battle.leftCharacterManager.objects.list.size + battle.rightCharacterManager.objects.list.size) * sizeof(Trainer::Object);
+		char *buffer = new char[allocSize];
+		Trainer::GameFramePacket *packet = reinterpret_cast<Trainer::GameFramePacket *>(buffer);
+		int current = 0;
 
-		fillState(battle.leftCharacterManager, battle.rightCharacterManager, packet.leftState);
-		fillState(battle.rightCharacterManager, battle.leftCharacterManager, packet.rightState);
-		packet.op = Trainer::OPCODE_GAME_FRAME;
-		packet.weatherTimer = SokuLib::weatherCounter;
-		packet.displayedWeather = SokuLib::displayedWeather;
+		fillState(battle.leftCharacterManager, battle.rightCharacterManager, packet->leftState);
+		fillState(battle.rightCharacterManager, battle.leftCharacterManager, packet->rightState);
+		packet->op = Trainer::OPCODE_GAME_FRAME;
+		packet->weatherTimer = SokuLib::weatherCounter;
+		packet->displayedWeather = SokuLib::displayedWeather;
 		if (SokuLib::activeWeather != SokuLib::WEATHER_CLEAR && SokuLib::displayedWeather == SokuLib::WEATHER_AURORA)
-			packet.activeWeather = SokuLib::WEATHER_AURORA;
+			packet->activeWeather = SokuLib::WEATHER_AURORA;
 		else
-			packet.activeWeather = SokuLib::activeWeather;
+			packet->activeWeather = SokuLib::activeWeather;
+		for (auto obj : battle.leftCharacterManager.objects.list.vector())
+			fillState(*obj, battle.leftCharacterManager, battle.rightCharacterManager, packet->objects[current++]);
+		for (auto obj : battle.rightCharacterManager.objects.list.vector())
+			fillState(*obj, battle.rightCharacterManager, battle.leftCharacterManager, packet->objects[current++]);
+
 		inputsReceived = false;
-		send(sock, reinterpret_cast<const char *>(&packet), sizeof(packet), 0);
+		send(sock, buffer, allocSize, 0);
+		delete[] buffer;
 		gameFinished |= battle.leftCharacterManager.score == 2 || battle.rightCharacterManager.score == 2;
 		while (!cancel && !gameFinished && !stop && !inputsReceived);
 	}

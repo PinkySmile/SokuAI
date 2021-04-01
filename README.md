@@ -136,13 +136,14 @@ The hello packet hasn't yet been successfully processed
 A game is still being played or the game is not ready to start a new game
 
 ### GAME_FRAME (0x08) Client only
-Data size: 176
+Data size: 198 + nbObjects * 23
 
-- Bytes 0 - 97: Left character state;
-- Bytes 98 - 170: Left character state;
-- Bytes 171 - 169: Displayed weather (List [here](https://github.com/SokuDev/SokuLib/blob/51486a0c400201313f6afff1155e8f84bbb9d809/src/Core/Weather.hpp#L11);
-- Bytes 170 - 173: Active weather (List [here](https://github.com/SokuDev/SokuLib/blob/51486a0c400201313f6afff1155e8f84bbb9d809/src/Core/Weather.hpp#L11));
-- Bytes 174 - 175: Weather timer (0 - 999);
+- Bytes 0 - 93: Left character state;
+- Bytes 94 - 187: Right character state;
+- Bytes 188 - 191: Displayed weather (List [here](https://github.com/SokuDev/SokuLib/blob/51486a0c400201313f6afff1155e8f84bbb9d809/src/Core/Weather.hpp#L11);
+- Bytes 191 - 195: Active weather (List [here](https://github.com/SokuDev/SokuLib/blob/51486a0c400201313f6afff1155e8f84bbb9d809/src/Core/Weather.hpp#L11));
+- Bytes 196 - 197: Weather timer (0 - 999);
+- Bytes 198 - N: Other objects
 
 Character state:
 - 1 byte: Direction (-1 if facing left or 1 if facing right)
@@ -180,6 +181,17 @@ Character state:
 - 2 bytes: Mpp time left;
 - 2 bytes: Kanako cooldown;
 - 2 bytes: Suwako cooldown;
+- 1 bytes: Child objects count
+
+Object:
+- 1 byte: Direction;
+- 8 bytes: (float, float) Relative position to spawner (x then y);
+- 8 bytes: (float, float) Relative position to spawner's opponent (x then y);
+- 2 bytes: Soku action;
+- 4 bytes: Image (sprite) index;
+
+To know the number of objects, look at the child objects field for both states.
+The left character's objects are placed first, followed byt the right character's.
 
 All times are in frames.
 
