@@ -147,10 +147,10 @@ Data size: 198 + nbObjects * 23
 
 Character state:
 - 1 byte: Direction (-1 if facing left or 1 if facing right)
-- 4 bytes: (float) Opponent relative position X (this is just myPos.x - opponentPos.x)
-- 4 bytes: (float) Opponent relative position Y (this is just myPos.y - opponentPos.y)
-- 4 bytes: (float) Distance to left corner
-- 4 bytes: (float) Distance to right corner
+- 4 bytes: (float) Opponent relative position X
+- 4 bytes: (float) Opponent relative position Y
+- 4 bytes: (float) Distance to back corner
+- 4 bytes: (float) Distance to front corner
 - 2 bytes: Soku action (List [here](https://github.com/SokuDev/SokuLib/blob/51486a0c400201313f6afff1155e8f84bbb9d809/src/Core/CharacterManager.hpp#L25)));
 - 2 bytes: Action block index (Block index in the action);
 - 2 bytes: Animation counter (Animation index);

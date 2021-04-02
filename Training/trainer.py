@@ -1,20 +1,23 @@
 import GameInstance
 import time
 import sys
+import BaseAI
+import random
 
 if len(sys.argv) < 3:
     print("Usage:", sys.argv[0], "<game_path> <port> [<SWRSToys.ini>]")
 
-c = True
+random.seed(time.time())
 client = sys.argv[1]
 port = int(sys.argv[2])
 ini = None if len(sys.argv) == 3 else sys.argv[3]
 
+state = None
 game = GameInstance.GameInstance(client, ini, port)
 while True:
     time.sleep(0.1)
     try:
-        game.start_game({
+        state = game.start_game({
             "stage": 13,
             "music": 13,
             "left": {
@@ -45,30 +48,25 @@ while True:
         if sys.exc_info()[1].code != 12:
             raise
 
-game.set_game_speed(1200)
-game.set_display_mode(False)
+leftAi = BaseAI.BaseAI()
+rightAi = BaseAI.BaseAI()
+#game.set_game_speed(999999)
+game.set_display_mode(True)
 game.set_game_volume(0, 0)
 while True:
-    game.tick({
-        "left": {
-            "A": False,
-            "B": False,
-            "C": c,
-            "D": False,
-            "SW": False,
-            "SC": False,
-            "H": 0,
-            "V": 0,
-        },
-        "right": {
-            "A": False,
-            "B": False,
-            "C": False,
-            "D": False,
-            "SW": False,
-            "SC": False,
-            "H": 0,
-            "V": 0,
-        }
+    state = game.tick({
+        "left": leftAi.get_inputs(
+            state["left"],
+            state["right"],
+            state["weather"],
+            state["left_objs"],
+            state["right_objs"],
+        ),
+        "right": leftAi.get_inputs(
+            state["right"],
+            state["left"],
+            state["weather"],
+            state["right_objs"],
+            state["left_objs"],
+        ),
     })
-    c = not c

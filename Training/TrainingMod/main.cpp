@@ -86,10 +86,16 @@ void updateInput(SokuLib::KeyInput &old, const Trainer::Input &n) {
 static void fillState(const SokuLib::CharacterManager &source, const SokuLib::CharacterManager &opponent, Trainer::CharacterState &destination)
 {
 	destination.direction = source.objectBase.direction;
-	destination.opponentRelativePos.x = source.objectBase.position.x - opponent.objectBase.position.x;
 	destination.opponentRelativePos.y = source.objectBase.position.y - opponent.objectBase.position.y;
-	destination.distToLeftCorner = source.objectBase.position.x - 40;
-	destination.distToRightCorner = 1240 - source.objectBase.position.x;
+	if (source.objectBase.direction == SokuLib::LEFT) {
+		destination.opponentRelativePos.x = source.objectBase.position.x - opponent.objectBase.position.x;
+		destination.distToBackCorner = 1240 - source.objectBase.position.x;
+		destination.distToFrontCorner = source.objectBase.position.x - 40;
+	} else {
+		destination.opponentRelativePos.x = opponent.objectBase.position.x - source.objectBase.position.x;
+		destination.distToBackCorner = source.objectBase.position.x - 40;
+		destination.distToFrontCorner = 1240 - source.objectBase.position.x;
+	}
 	destination.action = source.objectBase.action;
 	destination.actionBlockId = source.objectBase.actionBlockId;
 	destination.animationCounter = source.objectBase.animationCounter;
@@ -317,7 +323,6 @@ static void handlePacket(const Trainer::Packet &packet, unsigned int size)
 	if (!hello && packet.op != Trainer::OPCODE_HELLO)
 		return sendError(Trainer::ERROR_HELLO_NOT_SENT);
 
-	//GAME_FRAME, GAME_INPUTS, GAME_CANCEL and GAME_ENDED
 	switch (packet.op) {
 	case Trainer::OPCODE_HELLO:
 		CHECK_PACKET_SIZE(Trainer::HelloPacket, size);
@@ -470,7 +475,7 @@ int __fastcall CBattle_OnProcess(T *This) {
 		if (ret != SokuLib::SCENE_BATTLE || cancel) {
 			gameFinished = false;
 			endPacket.op = Trainer::OPCODE_GAME_ENDED;
-			endPacket.winner = 0 + (battle.leftCharacterManager.score == 2) + (battle.rightCharacterManager.score) * 2;
+			endPacket.winner = 0 + (battle.leftCharacterManager.score == 2) + (battle.rightCharacterManager.score == 2) * 2;
 			send(sock, reinterpret_cast<const char *>(&endPacket), sizeof(endPacket), 0);
 			return SokuLib::SCENE_TITLE;
 		}
