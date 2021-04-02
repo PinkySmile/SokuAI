@@ -16,6 +16,9 @@ OPCODE_GAME_INPUTS = 9
 OPCODE_GAME_CANCEL = 10
 OPCODE_GAME_ENDED = 11
 OPCODE_OK = 12
+OPCODE_SET_HEALTH = 13
+OPCODE_SET_POSITION = 14
+OPCODE_SET_WEATHER = 15
 
 
 class InvalidHandshakeError(Exception):
@@ -31,7 +34,26 @@ class GameEndedException(Exception):
 
 
 class ProtocolError(Exception):
-    errors = ["INVALID_OPCODE", "INVALID_PACKET", "INVALID_LEFT_DECK", "INVALID_LEFT_CHARACTER", "INVALID_LEFT_PALETTE", "INVALID_RIGHT_DECK", "INVALID_RIGHT_CHARACTER", "INVALID_RIGHT_PALETTE", "INVALID_MUSIC", "INVALID_STAGE", "INVALID_MAGIC", "HELLO_NOT_SENT", "STILL_PLAYING"]
+    errors = [
+        "INVALID_OPCODE",
+        "INVALID_PACKET",
+        "INVALID_LEFT_DECK",
+        "INVALID_LEFT_CHARACTER",
+        "INVALID_LEFT_PALETTE",
+        "INVALID_RIGHT_DECK",
+        "INVALID_RIGHT_CHARACTER",
+        "INVALID_RIGHT_PALETTE",
+        "INVALID_MUSIC",
+        "INVALID_STAGE",
+        "INVALID_MAGIC",
+        "HELLO_NOT_SENT",
+        "STILL_PLAYING",
+        "POSITION_OUT_OF_BOUND",
+        "INVALID_HEALTH",
+        "INVALID_WEATHER",
+        "INVALID_WEATHER_TIME",
+        "NOT_IN_GAME"
+    ]
     code = 0
 
     def __init__(self, code):
@@ -197,5 +219,32 @@ class GameInstance:
 
     def set_game_volume(self, sfx, bgm):
         self.socket.send(bytes([OPCODE_SOUND, sfx, bgm]))
+        if self.socket.recv(1)[0] == OPCODE_ERROR:
+            raise ProtocolError(self.socket.recv(1)[0])
+
+    def set_positions(self, left, right):
+        self.socket.send(struct.pack(
+            '<Bffff',
+            OPCODE_SET_POSITION,
+            left["x"],
+            left["y"],
+            right["x"],
+            right["y"],
+        ))
+        if self.socket.recv(1)[0] == OPCODE_ERROR:
+            raise ProtocolError(self.socket.recv(1)[0])
+
+    def set_health(self, left, right):
+        self.socket.send(struct.pack(
+            '<BHH',
+            OPCODE_SET_HEALTH,
+            left,
+            right,
+        ))
+        if self.socket.recv(1)[0] == OPCODE_ERROR:
+            raise ProtocolError(self.socket.recv(1)[0])
+
+    def set_weather(self, weather, timer, freeze_timer=False):
+        self.socket.send(struct.pack('<BIH?', OPCODE_SET_WEATHER, weather, timer, freeze_timer))
         if self.socket.recv(1)[0] == OPCODE_ERROR:
             raise ProtocolError(self.socket.recv(1)[0])

@@ -27,6 +27,9 @@ namespace Trainer
 		OPCODE_GAME_CANCEL,
 		OPCODE_GAME_ENDED,
 		OPCODE_OK,
+		OPCODE_SET_HEALTH,
+		OPCODE_SET_POSITION,
+		OPCODE_SET_WEATHER,
 	};
 
 	enum Errors : unsigned char {
@@ -43,6 +46,11 @@ namespace Trainer
 		ERROR_INVALID_MAGIC,
 		ERROR_HELLO_NOT_SENT,
 		ERROR_STILL_PLAYING,
+		ERROR_POSITION_OUT_OF_BOUND,
+		ERROR_INVALID_HEALTH,
+		ERROR_INVALID_WEATHER,
+		ERROR_INVALID_WEATHER_TIME,
+		ERROR_NOT_IN_GAME,
 	};
 
 	struct HelloPacket {
@@ -171,6 +179,25 @@ namespace Trainer
 		unsigned char winner;
 	};
 
+	struct SetHealthPacket {
+		Opcode op;
+		unsigned short left;
+		unsigned short right;
+	};
+
+	struct SetPositionPacket {
+		Opcode op;
+		SokuLib::Vector left;
+		SokuLib::Vector right;
+	};
+
+	struct SetWeatherPacket {
+		Opcode op;
+		SokuLib::Weather weather;
+		unsigned short timer;
+		bool freeze;
+	};
+
 	union Packet {
 		Opcode op;
 		HelloPacket hello;
@@ -183,6 +210,9 @@ namespace Trainer
 		GameFramePacket gameFrame;
 		GameInputPacket gameInput;
 		GameEndedPacket gameEnded;
+		SetHealthPacket setHealth;
+		SetPositionPacket setPosition;
+		SetWeatherPacket setWeather;
 	};
 #pragma pack(pop)
 }

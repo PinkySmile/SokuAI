@@ -20,6 +20,10 @@ void (__stdcall *s_origLoadDeckData)(char *, void *, SokuLib::deckInfo &, int, S
 static void (SokuLib::KeymapManager::*s_origKeymapManager_SetInputs)();
 
 static SOCKET sock;
+static bool setWeather = false;
+static bool freezeWeather = false;
+static SokuLib::Weather weather;
+static unsigned short weatherTimer;
 static bool hello = false;
 static bool stop = false;
 static bool gameFinished = false;
@@ -368,6 +372,47 @@ static void handlePacket(const Trainer::Packet &packet, unsigned int size)
 		CHECK_PACKET_SIZE(Trainer::SoundPacket, size);
 		sendOpcode(Trainer::OPCODE_OK);
 		return;
+	case Trainer::OPCODE_SET_HEALTH:
+		CHECK_PACKET_SIZE(Trainer::SetHealthPacket, size);
+		if (SokuLib::sceneId != SokuLib::SCENE_BATTLE)
+			return sendError(Trainer::ERROR_NOT_IN_GAME);
+		sendOpcode(Trainer::OPCODE_OK);
+		if (packet.setHealth.left > 10000 || packet.setHealth.right > 10000)
+			return sendError(Trainer::ERROR_INVALID_HEALTH);
+		SokuLib::getBattleMgr().leftCharacterManager.objectBase.hp = packet.setHealth.left;
+		SokuLib::getBattleMgr().rightCharacterManager.objectBase.hp = packet.setHealth.right;
+		return;
+	case Trainer::OPCODE_SET_POSITION:
+		CHECK_PACKET_SIZE(Trainer::SetPositionPacket, size);
+		if (SokuLib::sceneId != SokuLib::SCENE_BATTLE)
+			return sendError(Trainer::ERROR_NOT_IN_GAME);
+		if (packet.setPosition.left.y < 0 || packet.setPosition.right.y < 0)
+			return sendError(Trainer::ERROR_POSITION_OUT_OF_BOUND);
+		if (packet.setPosition.left.x < 40 || packet.setPosition.right.x < 40)
+			return sendError(Trainer::ERROR_POSITION_OUT_OF_BOUND);
+		if (packet.setPosition.left.y > 1240 || packet.setPosition.right.y > 1240)
+			return sendError(Trainer::ERROR_POSITION_OUT_OF_BOUND);
+		SokuLib::getBattleMgr().leftCharacterManager.objectBase.position = packet.setPosition.left;
+		SokuLib::getBattleMgr().rightCharacterManager.objectBase.position = packet.setPosition.right;
+		sendOpcode(Trainer::OPCODE_OK);
+		return;
+	case Trainer::OPCODE_SET_WEATHER:
+		CHECK_PACKET_SIZE(Trainer::SetWeatherPacket, size);
+		if (SokuLib::sceneId != SokuLib::SCENE_BATTLE)
+			return sendError(Trainer::ERROR_NOT_IN_GAME);
+		if (packet.setWeather.timer > 999)
+			return sendError(Trainer::ERROR_INVALID_WEATHER_TIME);
+		if (packet.setWeather.weather > SokuLib::WEATHER_CLEAR)
+			return sendError(Trainer::ERROR_INVALID_WEATHER);
+		weatherTimer = packet.setWeather.timer;
+		weather = packet.setWeather.weather;
+		freezeWeather = packet.setWeather.freeze;
+		SokuLib::displayedWeather = weather;
+		SokuLib::activeWeather = SokuLib::WEATHER_CLEAR;
+		SokuLib::weatherCounter = 999;
+		setWeather = true;
+		sendOpcode(Trainer::OPCODE_OK);
+		return;
 	case Trainer::OPCODE_ERROR:
 	case Trainer::OPCODE_FAULT:
 	case Trainer::OPCODE_GAME_FRAME:
@@ -442,6 +487,14 @@ int __fastcall CBattle_OnProcess(T *This) {
 	auto &battle = SokuLib::getBattleMgr();
 	Trainer::GameEndedPacket endPacket;
 
+	if (setWeather || freezeWeather) {
+		if (weather == SokuLib::WEATHER_CLEAR)
+			SokuLib::weatherCounter = -1;
+		else if (SokuLib::activeWeather == weather) {
+			SokuLib::weatherCounter = weatherTimer;
+			setWeather = false;
+		}
+	}
 	counter += tps / 60.f;
 	while (counter >= 1) {
 		int ret = (This->*s_origCBattle_OnProcess)();
