@@ -2,10 +2,14 @@ import GameInstance
 import time
 import sys
 
+if len(sys.argv) < 3:
+    print("Usage:", sys.argv[0], "<game_path> <port> [<SWRSToys.ini>]")
+
 c = True
-client = "C:\\Users\\PinkySmile\\Desktop\\TH12.3 ~ Hisoutensoku\\th123e.exe"
-ini = "C:\\Users\\PinkySmile\\Documents\\GitHub\\SokuAI\\cmake-build-debug-visual-studio\\dev.ini"
-port = 12345
+client = sys.argv[1]
+port = int(sys.argv[2])
+ini = None if len(sys.argv) == 3 else sys.argv[3]
+
 game = GameInstance.GameInstance(client, ini, port)
 while True:
     time.sleep(0.1)
