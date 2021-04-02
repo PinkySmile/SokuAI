@@ -1,4 +1,5 @@
 import GameManager
+import DeckFactory
 import time
 import sys
 import BaseAI
@@ -12,27 +13,17 @@ client = sys.argv[1]
 port = int(sys.argv[2])
 ini = None if len(sys.argv) == 3 else sys.argv[3]
 
+deck_factory = DeckFactory.DeckFactory()
+
 player1 = {
     "character": 6,
     "palette": 2,
-    "deck": [
-        0, 0, 0, 0,
-        1, 1, 1, 1,
-        2, 2, 2, 2,
-        3, 3, 3, 3,
-        4, 4, 4, 4
-    ]
+    "deck": deck_factory.build_deck(6)
 }
 player2 = {
     "character": 6,
     "palette": 0,
-    "deck": [
-        5, 5, 5, 5,
-        6, 6, 6, 6,
-        7, 7, 7, 7,
-        8, 8, 8, 8,
-        9, 9, 9, 9
-    ]
+    "deck":  deck_factory.build_deck(6)
 }
 
 game = GameManager.GameManager(client, port, (BaseAI.BaseAI(), BaseAI.BaseAI()), tps=600, ini_path=ini)
