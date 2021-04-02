@@ -31,7 +31,7 @@ static bool cancel = false;
 static bool startRequested = false;
 static bool inputsReceived = false;
 
-static unsigned counter = 0;
+static float counter = 0;
 static unsigned tps = 60;
 static unsigned char decks[40];
 static std::pair<unsigned char, unsigned char> palettes;
@@ -124,6 +124,7 @@ static void fillState(const SokuLib::CharacterManager &source, const SokuLib::Ch
 	destination.mppTimeLeft = source.missingPurplePowerTimeLeft;
 	destination.kanakoCooldown = source.kanakoTimeLeft;
 	destination.suwakoCooldown = source.suwakoTimeLeft;
+	destination.objectCount = source.objects.list.size;
 }
 
 static void fillState(const SokuLib::ObjectManager &object, const SokuLib::CharacterManager &source, const SokuLib::CharacterManager &opponent, Trainer::Object &destination)
@@ -210,6 +211,11 @@ static void sendError(Trainer::Errors code)
 	::send(sock, reinterpret_cast<const char *>(&packet), sizeof(packet), 0);
 }
 
+static void sendOpcode(Trainer::Opcode code)
+{
+	::send(sock, reinterpret_cast<const char *>(&code), sizeof(code), 0);
+}
+
 static void swapDisplay(bool enabled)
 {
 	if (!enabled == !displayed)
@@ -231,27 +237,31 @@ static void swapDisplay(bool enabled)
 
 static void startGame(const Trainer::StartGamePacket &startData)
 {
+	sendOpcode(Trainer::OPCODE_OK);
 	SokuLib::changeScene(SokuLib::SCENE_SELECT);
 	SokuLib::waitForSceneChange();
 	SokuLib::setBattleMode(SokuLib::BATTLE_MODE_VSPLAYER, SokuLib::BATTLE_SUBMODE_PLAYING2);
 
 	memset(&lastInputs.first, 0, sizeof(lastInputs.first));
 	memset(&lastInputs.second, 0, sizeof(lastInputs.second));
-	gameFinished = false;
-	cancel = false;
+
 	SokuLib::leftPlayerInfo.character = startData.leftCharacter;
-	palettes.first = startData.leftPalette;
-	SokuLib::leftPlayerInfo.deck = 0;
 	SokuLib::rightPlayerInfo.character = startData.rightCharacter;
+	palettes.first = startData.leftPalette;
 	palettes.second = startData.rightPalette;
+	SokuLib::leftPlayerInfo.deck = 0;
 	SokuLib::rightPlayerInfo.deck = 0;
-	*(unsigned *)(*(unsigned *)0x8A000C + 0x2438) = startData.stageId;// Stage
-	*(unsigned *)(*(unsigned *)0x8A000C + 0x244C) = startData.musicId;// Music
-	((unsigned *)0x00898680)[0] = 0x008986A8;
-	((unsigned *)0x00898680)[1] = 0x008986A8;
 	memcpy(decks, startData.leftDeck, 20);
 	memcpy(decks + 20, startData.rightDeck, 20);
 
+	*(unsigned *)(*(unsigned *)0x8A000C + 0x2438) = startData.stageId;// Stage
+	*(unsigned *)(*(unsigned *)0x8A000C + 0x244C) = startData.musicId;// Music
+	((unsigned *)0x00898680)[0] = 0x008986A8; //Init both inputs
+	((unsigned *)0x00898680)[1] = 0x008986A8; //Init both inputs
+
+	gameFinished = false;
+	cancel = false;
+	inputsReceived = false;
 	startRequested = true;
 }
 
@@ -321,10 +331,12 @@ static void handlePacket(const Trainer::Packet &packet, unsigned int size)
 	case Trainer::OPCODE_GOODBYE:
 		CHECK_PACKET_SIZE(Trainer::Opcode, size);
 		stop = true;
+		sendOpcode(Trainer::OPCODE_OK);
 		return;
 	case Trainer::OPCODE_SPEED:
 		CHECK_PACKET_SIZE(Trainer::SpeedPacket, size);
 		tps = packet.speed.ticksPerSecond;
+		sendOpcode(Trainer::OPCODE_OK);
 		return;
 	case Trainer::OPCODE_START_GAME:
 		CHECK_PACKET_SIZE(Trainer::StartGamePacket, size);
@@ -340,13 +352,16 @@ static void handlePacket(const Trainer::Packet &packet, unsigned int size)
 	case Trainer::OPCODE_DISPLAY:
 		CHECK_PACKET_SIZE(Trainer::DisplayPacket, size);
 		swapDisplay(packet.display.enabled);
+		sendOpcode(Trainer::OPCODE_OK);
 		return;
 	case Trainer::OPCODE_GAME_CANCEL:
 		CHECK_PACKET_SIZE(Trainer::Opcode, size);
 		cancel = true;
+		sendOpcode(Trainer::OPCODE_OK);
 		return;
 	case Trainer::OPCODE_SOUND:
 		CHECK_PACKET_SIZE(Trainer::SoundPacket, size);
+		sendOpcode(Trainer::OPCODE_OK);
 		return;
 	case Trainer::OPCODE_ERROR:
 	case Trainer::OPCODE_FAULT:
@@ -365,6 +380,8 @@ static void threadLoop(void *)
 
 		if (received == 0) {
 			stop = true;
+			SokuLib::changeScene(SokuLib::SCENE_SELECT);
+			SokuLib::waitForSceneChange();
 			return;
 		}
 		handlePacket(packet, received);
@@ -418,45 +435,50 @@ int __fastcall CSelect_OnProcess(T *This) {
 
 int __fastcall CBattle_OnProcess(T *This) {
 	auto &battle = SokuLib::getBattleMgr();
-	int ret = (This->*s_origCBattle_OnProcess)();
 	Trainer::GameEndedPacket endPacket;
 
-	if (!gameFinished) {
-		size_t allocSize = sizeof(Trainer::GameFramePacket) + (battle.leftCharacterManager.objects.list.size + battle.rightCharacterManager.objects.list.size) * sizeof(Trainer::Object);
-		char *buffer = new char[allocSize];
-		Trainer::GameFramePacket *packet = reinterpret_cast<Trainer::GameFramePacket *>(buffer);
-		int current = 0;
+	counter += tps / 60.f;
+	while (counter >= 1) {
+		int ret = (This->*s_origCBattle_OnProcess)();
+		if (!gameFinished) {
+			size_t allocSize = sizeof(Trainer::GameFramePacket) + (battle.leftCharacterManager.objects.list.size + battle.rightCharacterManager.objects.list.size) * sizeof(Trainer::Object);
+			char *buffer = new char[allocSize];
+			Trainer::GameFramePacket *packet = reinterpret_cast<Trainer::GameFramePacket *>(buffer);
+			int current = 0;
 
-		fillState(battle.leftCharacterManager, battle.rightCharacterManager, packet->leftState);
-		fillState(battle.rightCharacterManager, battle.leftCharacterManager, packet->rightState);
-		packet->op = Trainer::OPCODE_GAME_FRAME;
-		packet->weatherTimer = SokuLib::weatherCounter;
-		packet->displayedWeather = SokuLib::displayedWeather;
-		if (SokuLib::activeWeather != SokuLib::WEATHER_CLEAR && SokuLib::displayedWeather == SokuLib::WEATHER_AURORA)
-			packet->activeWeather = SokuLib::WEATHER_AURORA;
-		else
-			packet->activeWeather = SokuLib::activeWeather;
-		for (auto obj : battle.leftCharacterManager.objects.list.vector())
-			fillState(*obj, battle.leftCharacterManager, battle.rightCharacterManager, packet->objects[current++]);
-		for (auto obj : battle.rightCharacterManager.objects.list.vector())
-			fillState(*obj, battle.rightCharacterManager, battle.leftCharacterManager, packet->objects[current++]);
+			fillState(battle.leftCharacterManager, battle.rightCharacterManager, packet->leftState);
+			fillState(battle.rightCharacterManager, battle.leftCharacterManager, packet->rightState);
+			packet->op = Trainer::OPCODE_GAME_FRAME;
+			packet->weatherTimer = SokuLib::weatherCounter;
+			packet->displayedWeather = SokuLib::displayedWeather;
+			if (SokuLib::activeWeather != SokuLib::WEATHER_CLEAR &&
+			    SokuLib::displayedWeather == SokuLib::WEATHER_AURORA)
+				packet->activeWeather = SokuLib::WEATHER_AURORA;
+			else
+				packet->activeWeather = SokuLib::activeWeather;
+			for (auto obj : battle.leftCharacterManager.objects.list.vector())
+				fillState(*obj, battle.leftCharacterManager, battle.rightCharacterManager, packet->objects[current++]);
+			for (auto obj : battle.rightCharacterManager.objects.list.vector())
+				fillState(*obj, battle.rightCharacterManager, battle.leftCharacterManager, packet->objects[current++]);
 
-		inputsReceived = false;
-		send(sock, buffer, allocSize, 0);
-		delete[] buffer;
-		gameFinished |= battle.leftCharacterManager.score == 2 || battle.rightCharacterManager.score == 2;
-		while (!cancel && !gameFinished && !stop && !inputsReceived);
+			inputsReceived = false;
+			send(sock, buffer, allocSize, 0);
+			delete[] buffer;
+			gameFinished |= battle.leftCharacterManager.score == 2 || battle.rightCharacterManager.score == 2;
+			while (!cancel && !gameFinished && !stop && !inputsReceived);
+		}
+		if (ret != SokuLib::SCENE_BATTLE || cancel) {
+			gameFinished = false;
+			endPacket.op = Trainer::OPCODE_GAME_ENDED;
+			endPacket.winner = 0 + (battle.leftCharacterManager.score == 2) + (battle.rightCharacterManager.score) * 2;
+			send(sock, reinterpret_cast<const char *>(&endPacket), sizeof(endPacket), 0);
+			return SokuLib::SCENE_TITLE;
+		}
+		if (stop)
+			return -1;
+		counter--;
 	}
-	if (ret == SokuLib::SCENE_SELECT || cancel) {
-		gameFinished = false;
-		endPacket.op = Trainer::OPCODE_GAME_ENDED;
-		endPacket.winner = 0 + (battle.leftCharacterManager.score == 2) + (battle.rightCharacterManager.score) * 2;
-		send(sock, reinterpret_cast<const char *>(&endPacket), sizeof(endPacket), 0);
-		return SokuLib::SCENE_TITLE;
-	}
-	if (stop)
-		return -1;
-	return ret;
+	return SokuLib::SCENE_BATTLE;
 }
 
 // 設定ロード

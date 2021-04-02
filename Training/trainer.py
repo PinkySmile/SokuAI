@@ -1,45 +1,70 @@
-import socket
-import threading
-import traceback
+import GameInstance
+import time
+import sys
 
-client = None
-
-
-def add_input():
-    while True:
-        inp = input()
-        try:
-            b = bytes(int(c, 16) for c in inp.split())
-            print("Sending", b)
-            client.send(b)
-        except:
-            print("Cannot send", inp)
-            traceback.print_exc()
-
-
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP)
-sock.bind(("127.0.0.1", 12345))
-sock.listen(5)
+c = True
+client = "C:\\Users\\PinkySmile\\Desktop\\TH12.3 ~ Hisoutensoku\\th123e.exe"
+ini = "C:\\Users\\PinkySmile\\Documents\\GitHub\\SokuAI\\cmake-build-debug-visual-studio\\dev.ini"
+port = 12345
+game = GameInstance.GameInstance(client, ini, port)
 while True:
-    client, remote = sock.accept()
-    print(remote, "connected")
+    time.sleep(0.1)
     try:
-        result = False
-        input_thread = threading.Thread(target=add_input)
-        input_thread.daemon = True
-        input_thread.start()
+        game.start_game({
+            "stage": 13,
+            "music": 13,
+            "left": {
+                "character": 6,
+                "palette": 2,
+                "deck": [
+                    0, 0, 0, 0,
+                    1, 1, 1, 1,
+                    2, 2, 2, 2,
+                    3, 3, 3, 3,
+                    4, 4, 4, 4
+                ]
+            },
+            "right": {
+                "character": 6,
+                "palette": 0,
+                "deck": [
+                    5, 5, 5, 5,
+                    6, 6, 6, 6,
+                    7, 7, 7, 7,
+                    8, 8, 8, 8,
+                    9, 9, 9, 9
+                ]
+            },
+        })
+        break
+    except GameInstance.ProtocolError:
+        if sys.exc_info()[1].code != 12:
+            raise
 
-        while True:
-            byte = client.recv(1000)
-            if not byte:
-                break
-            if byte[0] == 8:
-                result = not result
-                if result:
-                    client.send(b'\x09\0\0\0\0')
-                else:
-                    client.send(b'\x09\4\0\0\0')
-            else:
-                print("Received", byte)
-    except:
-        traceback.print_exc()
+game.set_game_speed(1200)
+game.set_display_mode(False)
+game.set_game_volume(0, 0)
+while True:
+    game.tick({
+        "left": {
+            "A": False,
+            "B": False,
+            "C": c,
+            "D": False,
+            "SW": False,
+            "SC": False,
+            "H": 0,
+            "V": 0,
+        },
+        "right": {
+            "A": False,
+            "B": False,
+            "C": False,
+            "D": False,
+            "SW": False,
+            "SC": False,
+            "H": 0,
+            "V": 0,
+        }
+    })
+    c = not c

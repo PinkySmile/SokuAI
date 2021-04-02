@@ -226,3 +226,8 @@ Data size: 1 byte
 Byte 0: Winner side (0 if the game was canceled, 1 if left won and 2 if the right won)
 
 Sent at the end of any game the server
+
+### OK (0x0C) Client only
+Data size: 0 byte
+
+Sent after every request that succeeded and doesn't return a specific opcode.

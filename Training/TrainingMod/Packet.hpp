@@ -26,6 +26,7 @@ namespace Trainer
 		OPCODE_GAME_INPUTS,
 		OPCODE_GAME_CANCEL,
 		OPCODE_GAME_ENDED,
+		OPCODE_OK,
 	};
 
 	enum Errors : unsigned char {
