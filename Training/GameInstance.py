@@ -113,6 +113,7 @@ class GameInstance:
         if byte[0] == OPCODE_ERROR:
             raise ProtocolError(byte[1])
         if len(byte) != 199:
+            print(byte)
             raise InvalidPacketError()
         if byte[0] != OPCODE_GAME_FRAME:
             raise InvalidPacketError()

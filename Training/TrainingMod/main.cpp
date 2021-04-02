@@ -335,8 +335,8 @@ static void handlePacket(const Trainer::Packet &packet, unsigned int size)
 		return;
 	case Trainer::OPCODE_GOODBYE:
 		CHECK_PACKET_SIZE(Trainer::Opcode, size);
-		stop = true;
 		sendOpcode(Trainer::OPCODE_OK);
+		stop = true;
 		return;
 	case Trainer::OPCODE_SPEED:
 		CHECK_PACKET_SIZE(Trainer::SpeedPacket, size);
@@ -361,8 +361,8 @@ static void handlePacket(const Trainer::Packet &packet, unsigned int size)
 		return;
 	case Trainer::OPCODE_GAME_CANCEL:
 		CHECK_PACKET_SIZE(Trainer::Opcode, size);
-		cancel = true;
 		sendOpcode(Trainer::OPCODE_OK);
+		cancel = true;
 		return;
 	case Trainer::OPCODE_SOUND:
 		CHECK_PACKET_SIZE(Trainer::SoundPacket, size);

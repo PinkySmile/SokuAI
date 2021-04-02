@@ -1,4 +1,4 @@
-import GameInstance
+import GameManager
 import time
 import sys
 import BaseAI
@@ -12,61 +12,28 @@ client = sys.argv[1]
 port = int(sys.argv[2])
 ini = None if len(sys.argv) == 3 else sys.argv[3]
 
-state = None
-game = GameInstance.GameInstance(client, ini, port)
-while True:
-    time.sleep(0.1)
-    try:
-        state = game.start_game({
-            "stage": 13,
-            "music": 13,
-            "left": {
-                "character": 6,
-                "palette": 2,
-                "deck": [
-                    0, 0, 0, 0,
-                    1, 1, 1, 1,
-                    2, 2, 2, 2,
-                    3, 3, 3, 3,
-                    4, 4, 4, 4
-                ]
-            },
-            "right": {
-                "character": 6,
-                "palette": 0,
-                "deck": [
-                    5, 5, 5, 5,
-                    6, 6, 6, 6,
-                    7, 7, 7, 7,
-                    8, 8, 8, 8,
-                    9, 9, 9, 9
-                ]
-            },
-        })
-        break
-    except GameInstance.ProtocolError:
-        if sys.exc_info()[1].code != 12:
-            raise
+player1 = {
+    "character": 6,
+    "palette": 2,
+    "deck": [
+        0, 0, 0, 0,
+        1, 1, 1, 1,
+        2, 2, 2, 2,
+        3, 3, 3, 3,
+        4, 4, 4, 4
+    ]
+}
+player2 = {
+    "character": 6,
+    "palette": 0,
+    "deck": [
+        5, 5, 5, 5,
+        6, 6, 6, 6,
+        7, 7, 7, 7,
+        8, 8, 8, 8,
+        9, 9, 9, 9
+    ]
+}
 
-leftAi = BaseAI.BaseAI()
-rightAi = BaseAI.BaseAI()
-#game.set_game_speed(999999)
-game.set_display_mode(True)
-game.set_game_volume(0, 0)
-while True:
-    state = game.tick({
-        "left": leftAi.get_inputs(
-            state["left"],
-            state["right"],
-            state["weather"],
-            state["left_objs"],
-            state["right_objs"],
-        ),
-        "right": leftAi.get_inputs(
-            state["right"],
-            state["left"],
-            state["weather"],
-            state["right_objs"],
-            state["left_objs"],
-        ),
-    })
+game = GameManager.GameManager(client, port, (BaseAI.BaseAI(), BaseAI.BaseAI()), tps=600, ini_path=ini)
+print(game.run(13, 13, player1, player2, 5, 18000))
