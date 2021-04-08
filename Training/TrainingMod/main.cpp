@@ -442,28 +442,93 @@ int __fastcall CLogo_OnProcess(T *This) {
 	int ret = (This->*s_origCLogo_OnProcess)();
 
 	if (ret == SokuLib::SCENE_TITLE) {
+		if (__argc <= 1) {
+			MessageBoxA(SokuLib::window, "No port provided. Please provide a port in the command line.", "Port not given", MB_ICONERROR);
+			return -1;
+		}
 		char *arg = __argv[__argc - 1];
 		WSADATA WSAData;
 		struct sockaddr_in serv_addr = {};
+		char *end;
+		long port = strtol(arg, &end, 0);
+		char *s = nullptr;
 
-		WSAStartup(MAKEWORD(2, 0), &WSAData);
+		if (*end) {
+			MessageBoxA(
+				SokuLib::window,
+				("Port provided as argument #" + std::to_string(__argc) + " (" + std::string(arg) +
+				") is not a valid number.\nPlease provide a valid port in the command line.").c_str(),
+				"Port invalid",
+				MB_ICONERROR
+			);
+			return -1;
+		}
+		if (port < 0 || port > 65535) {
+			MessageBoxA(
+				SokuLib::window,
+				("Port provided #" + std::to_string(__argc) + " (" + std::string(arg) +
+				 ") is not a valid port (not in range 0-65535).\nPlease provide a valid port in the command line.").c_str(),
+				"Port invalid",
+				MB_ICONERROR
+			);
+			return -1;
+		}
+		if (WSAStartup(MAKEWORD(2, 0), &WSAData) < 0) {
+			FormatMessageA(
+				FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+				nullptr,
+				WSAGetLastError(),
+				MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+				(LPSTR)&s,
+				0,
+				nullptr
+			);
+			MessageBoxA(SokuLib::window, (std::string("WSAStartup failed\n\nWSAGetLastError(): ") + std::to_string(WSAGetLastError()) + ": " + s).c_str(), "Init failure", MB_ICONERROR);
+			return -1;
+		}
 
 		/* create the socket */
 		sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-		if (sock == INVALID_SOCKET)
-			throw SocketCreationErrorException(strerror(errno));
+		if (sock == INVALID_SOCKET) {
+			FormatMessageA(
+				FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+				nullptr,
+				WSAGetLastError(),
+				MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+				(LPSTR)&s,
+				0,
+				nullptr
+			);
+			MessageBoxA(SokuLib::window, (std::string("Creating socket failed\n\nWSAGetLastError(): ") + std::to_string(WSAGetLastError()) + ": " + s).c_str(), "Init failure", MB_ICONERROR);
+			return -1;
+		}
 
 		/* fill in the structure */
 		serv_addr.sin_family = AF_INET;
-		serv_addr.sin_port = htons(atoi(arg));
+		serv_addr.sin_port = htons(port);
 		serv_addr.sin_addr.S_un.S_un_b.s_b1 = 127;
 		serv_addr.sin_addr.S_un.S_un_b.s_b2 = 0;
 		serv_addr.sin_addr.S_un.S_un_b.s_b3 = 0;
 		serv_addr.sin_addr.S_un.S_un_b.s_b4 = 1;
 
 		/* connect the socket */
-		if (::connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
-			throw ConnectException(std::string("Cannot connect to ") + inet_ntoa(serv_addr.sin_addr));
+		if (::connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+			FormatMessageA(
+				FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+				nullptr,
+				WSAGetLastError(),
+				MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+				(LPSTR)&s,
+				0,
+				nullptr
+			);
+			MessageBoxA(SokuLib::window, (
+				std::string("Cannot connect to ") + inet_ntoa(serv_addr.sin_addr) + " on port " + std::to_string(port) +
+				".\nPort gotten from command line argument #" + std::to_string(__argc) +
+				" (" + arg + ").\n\nWSAGetLastError(): " + std::to_string(WSAGetLastError()) + ": " + s
+			).c_str(), "Connection failure", MB_ICONERROR);
+			return -1;
+		}
 		_beginthread(threadLoop, 0, nullptr);
 	}
 	return ret;
