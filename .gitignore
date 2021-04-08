@@ -32,5 +32,9 @@
 *.app
 
 .idea
+.vs
 cmake-build-*
 *.pyc
+out
+
+CMakeSettings.json
