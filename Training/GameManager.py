@@ -1,4 +1,5 @@
-from Training import GameInstance, BaseAI
+import GameInstance
+import BaseAI
 import time
 import sys
 
