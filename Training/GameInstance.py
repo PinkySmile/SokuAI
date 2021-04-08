@@ -111,9 +111,9 @@ class GameInstance:
 
     def __init__(self, exe_path, ini_path, port):
         if ini_path is None:
-            subprocess.run([exe_path, str(port)])
+            subprocess.Popen([exe_path, str(port)])
         else:
-            subprocess.run([exe_path, ini_path, str(port)])
+            subprocess.Popen([exe_path, ini_path, str(port)])
         self.baseSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP)
         self.baseSocket.bind(("127.0.0.1", port))
         self.baseSocket.listen(5)
