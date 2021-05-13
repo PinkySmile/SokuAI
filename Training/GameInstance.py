@@ -62,8 +62,8 @@ class ProtocolError(Exception):
 
 
 class InvalidPacketError(Exception):
-    def __init__(self):
-        super().__init__("The received packet is malformed")
+    def __init__(self, packet):
+        super().__init__("The received packet is malformed: " + str(packet))
 
 
 class GameInstance:
@@ -136,9 +136,9 @@ class GameInstance:
             raise ProtocolError(byte[1])
         if len(byte) != 199:
             print(byte)
-            raise InvalidPacketError()
+            raise InvalidPacketError(byte)
         if byte[0] != OPCODE_GAME_FRAME:
-            raise InvalidPacketError()
+            raise InvalidPacketError(byte)
         result = {
             "left": GameInstance.parse_character_state(byte[1:95]),
             "right": GameInstance.parse_character_state(byte[95:189]),
