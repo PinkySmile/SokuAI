@@ -26,5 +26,5 @@ player2 = {
     "deck":  deck_factory.build_deck(6)
 }
 
-game = GameManager.GameManager(client, port, (BaseAI.BaseAI(), BaseAI.BaseAI()), tps=600, ini_path=ini)
+game = GameManager.GameManager(client, port, (BaseAI.BaseAI(), BaseAI.BaseAI()), tps=600, ini_path=ini, has_sound=False, has_display=False)
 print(game.run(13, 13, player1, player2, 5, 18000))

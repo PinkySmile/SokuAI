@@ -15,7 +15,6 @@ static int (SokuLib::Select::*s_origCSelect_OnRenderAddr)();
 static int (SokuLib::Logo::*s_origCLogo_OnProcess)();
 static int (SokuLib::Battle::*s_origCBattle_OnProcess)();
 static int (SokuLib::Select::*s_origCSelect_OnProcess)();
-void (__stdcall *s_origLoadDeckData)(char *, void *, SokuLib::DeckInfo &, int, SokuLib::Dequeue<short> &);
 static void (SokuLib::KeymapManager::*s_origKeymapManager_SetInputs)();
 
 static SOCKET sock;
@@ -27,7 +26,6 @@ static bool hello = false;
 static bool stop = false;
 static bool gameFinished = false;
 static bool displayed = true;
-static bool player = false;
 static bool begin = true;
 static bool cancel = false;
 
@@ -199,14 +197,6 @@ void __fastcall KeymapManagerSetInputs(SokuLib::KeymapManager *This)
 	//}
 }
 
-void __stdcall loadDeckData(char *charName, void *csvFile, SokuLib::DeckInfo &deck, int param4, SokuLib::Dequeue<short> &newDeck)
-{
-	for (int i = 0; i < 20; i++)
-		newDeck[i] = decks[player * 20 + i];
-	player = !player;
-	return s_origLoadDeckData(charName, csvFile, deck, param4, newDeck);
-}
-
 int dummyFunction()
 {
 	return 0;
@@ -246,6 +236,11 @@ static void swapDisplay(bool enabled)
 
 static void startGame(const Trainer::StartGamePacket &startData)
 {
+	SokuLib::profile1.name = "SokuAI";
+	SokuLib::profile1.file = "SokuAI.pf";
+	SokuLib::profile2.name = "SokuAI";
+	SokuLib::profile2.file = "SokuAI.pf";
+
 	sendOpcode(Trainer::OPCODE_OK);
 	SokuLib::changeScene(SokuLib::SCENE_SELECT);
 	SokuLib::waitForSceneChange();
@@ -263,8 +258,8 @@ static void startGame(const Trainer::StartGamePacket &startData)
 	memcpy(decks, startData.leftDeck, 20);
 	memcpy(decks + 20, startData.rightDeck, 20);
 
-	*(unsigned *)(*(unsigned *)0x8A000C + 0x2438) = startData.stageId;// Stage
-	*(unsigned *)(*(unsigned *)0x8A000C + 0x244C) = startData.musicId;// Music
+	SokuLib::currentScene->to<SokuLib::Select>().selectedStage = startData.stageId;// Stage
+	SokuLib::currentScene->to<SokuLib::Select>().selectedMusic = startData.musicId;// Music
 	((unsigned *)0x00898680)[0] = 0x008986A8; //Init both inputs
 	((unsigned *)0x00898680)[1] = 0x008986A8; //Init both inputs
 
@@ -427,7 +422,7 @@ static void threadLoop(void *)
 		Trainer::Packet packet;
 		int received = ::recv(sock, reinterpret_cast<char *>(&packet), sizeof(packet), 0);
 
-		if (received == 0) {
+		if (received <= 0) {
 			stop = true;
 			SokuLib::changeScene(SokuLib::SCENE_SELECT);
 			SokuLib::waitForSceneChange();
@@ -541,6 +536,12 @@ int __fastcall CSelect_OnProcess(SokuLib::Select *This) {
 	//if (ret == SokuLib::SCENE_LOADING)
 	//	return SokuLib::SCENE_LOADING;
 	//return SokuLib::SCENE_SELECT;
+	if (ret == SokuLib::SCENE_LOADING) {
+		for (int i = 0; i < 20; i++)
+			SokuLib::leftPlayerInfo.effectiveDeck[i] = decks[i];
+		for (int i = 0; i < 20; i++)
+			SokuLib::rightPlayerInfo.effectiveDeck[i] = decks[20 + i];
+	}
 	startRequested &= ret == SokuLib::SCENE_SELECT;
 	return ret;
 }
@@ -634,10 +635,6 @@ extern "C" __declspec(dllexport) bool Initialize(HMODULE hMyModule, HMODULE hPar
 	int newOffset = (int)KeymapManagerSetInputs - PAYLOAD_NEXT_INSTR_GET_INPUTS;
 	s_origKeymapManager_SetInputs = SokuLib::union_cast<void (SokuLib::KeymapManager::*)()>(*(int *)PAYLOAD_ADDRESS_GET_INPUTS + PAYLOAD_NEXT_INSTR_GET_INPUTS);
 	*(int *)PAYLOAD_ADDRESS_GET_INPUTS = newOffset;
-
-	newOffset = reinterpret_cast<int>(loadDeckData) - PAYLOAD_NEXT_INSTR_DECK_INFOS;
-	s_origLoadDeckData = reinterpret_cast<void (__stdcall *)(char *, void *, SokuLib::DeckInfo &, int, SokuLib::Dequeue<short> &)>(*(int *)PAYLOAD_ADDRESS_DECK_INFOS + PAYLOAD_NEXT_INSTR_DECK_INFOS);
-	*(int *)PAYLOAD_ADDRESS_DECK_INFOS = newOffset;
 	VirtualProtect((PVOID)TEXT_SECTION_OFFSET, TEXT_SECTION_SIZE, old, &old);
 
 	::FlushInstructionCache(GetCurrentProcess(), nullptr, 0);
