@@ -99,15 +99,15 @@ namespace Trainer
 
 	struct Object {
 		SokuLib::Direction direction;
-		SokuLib::Vector relativePosMe;
-		SokuLib::Vector relativePosOpponent;
+		SokuLib::Vector2f relativePosMe;
+		SokuLib::Vector2f relativePosOpponent;
 		SokuLib::Action action;
 		unsigned imageID;
 	};
 
 	struct CharacterState {
 		SokuLib::Direction direction;
-		SokuLib::Vector opponentRelativePos;
+		SokuLib::Vector2f opponentRelativePos;
 		float distToBackCorner;
 		float distToFrontCorner;
 		SokuLib::Action action;
@@ -187,8 +187,8 @@ namespace Trainer
 
 	struct SetPositionPacket {
 		Opcode op;
-		SokuLib::Vector left;
-		SokuLib::Vector right;
+		SokuLib::Vector2f left;
+		SokuLib::Vector2f right;
 	};
 
 	struct SetWeatherPacket {

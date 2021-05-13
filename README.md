@@ -13,7 +13,7 @@ The game (Client) connects to the remote (Server).
 -----------------
 ```
 
-
+## Trainer protocol
 ### HELLO (0x00) Client/Server
 Data size: 4 bytes
 

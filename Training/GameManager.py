@@ -15,6 +15,8 @@ class GameManager:
         self.right_ai = ais[1]
         self.game_instance.set_display_mode(has_display)
         self.game_instance.set_game_speed(tps)
+        self.game_instance.set_display_mode(False)
+        self.game_instance.set_game_volume(0, 0)
         if not has_sound:
             self.game_instance.set_game_volume(0, 0)
 

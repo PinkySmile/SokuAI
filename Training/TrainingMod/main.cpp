@@ -10,13 +10,12 @@
 
 #define CHECK_PACKET_SIZE(requested_type, size) if (size != sizeof(requested_type)) return sendError(Trainer::ERROR_INVALID_PACKET)
 
-struct T {};
-static DWORD s_origCBattle_OnRenderAddr;
-static DWORD s_origCSelect_OnRenderAddr;
-static int (T::*s_origCLogo_OnProcess)();
-static int (T::*s_origCBattle_OnProcess)();
-static int (T::*s_origCSelect_OnProcess)();
-void (__stdcall *s_origLoadDeckData)(char *, void *, SokuLib::deckInfo &, int, SokuLib::mVC9Dequeue<short> &);
+static int (SokuLib::Battle::*s_origCBattle_OnRenderAddr)();
+static int (SokuLib::Select::*s_origCSelect_OnRenderAddr)();
+static int (SokuLib::Logo::*s_origCLogo_OnProcess)();
+static int (SokuLib::Battle::*s_origCBattle_OnProcess)();
+static int (SokuLib::Select::*s_origCSelect_OnProcess)();
+void (__stdcall *s_origLoadDeckData)(char *, void *, SokuLib::DeckInfo &, int, SokuLib::Dequeue<short> &);
 static void (SokuLib::KeymapManager::*s_origKeymapManager_SetInputs)();
 
 static SOCKET sock;
@@ -118,9 +117,9 @@ static void fillState(const SokuLib::CharacterManager &source, const SokuLib::Ch
 	destination.score = source.score;
 	memset(destination.hand, 0xFF, sizeof(destination.hand));
 	if (SokuLib::activeWeather != SokuLib::WEATHER_MOUNTAIN_VAPOR)
-		for (int i = 0; i < source.deckInfos.hand.size; i++)
-			destination.hand[i] = source.deckInfos.hand[i].id;
-	destination.cardGauge = (SokuLib::activeWeather != SokuLib::WEATHER_MOUNTAIN_VAPOR ? source.deckInfos.cardGauge : -1);
+		for (int i = 0; i < source.hand.size; i++)
+			destination.hand[i] = source.hand[i].id;
+	destination.cardGauge = (SokuLib::activeWeather != SokuLib::WEATHER_MOUNTAIN_VAPOR ? source.cardGauge : -1);
 	memcpy(destination.skills, source.skillMap, sizeof(destination.skills));
 	destination.fanLevel = source.tenguFans;
 	destination.dropInvulTimeLeft = source.dropInvulTimeLeft;
@@ -200,7 +199,7 @@ void __fastcall KeymapManagerSetInputs(SokuLib::KeymapManager *This)
 	//}
 }
 
-void __stdcall loadDeckData(char *charName, void *csvFile, SokuLib::deckInfo &deck, int param4, SokuLib::mVC9Dequeue<short> &newDeck)
+void __stdcall loadDeckData(char *charName, void *csvFile, SokuLib::DeckInfo &deck, int param4, SokuLib::Dequeue<short> &newDeck)
 {
 	for (int i = 0; i < 20; i++)
 		newDeck[i] = decks[player * 20 + i];
@@ -236,11 +235,11 @@ static void swapDisplay(bool enabled)
 	displayed = enabled;
 	::VirtualProtect((PVOID)RDATA_SECTION_OFFSET, RDATA_SECTION_SIZE, PAGE_EXECUTE_WRITECOPY, &old);
 	if (!displayed) {
-		s_origCBattle_OnRenderAddr = SokuLib::TamperDword(SokuLib::vtbl_CBattle + SokuLib::OFFSET_ON_RENDER, (DWORD)dummyFunction);
-		s_origCSelect_OnRenderAddr = SokuLib::TamperDword(SokuLib::vtbl_CSelect + SokuLib::OFFSET_ON_RENDER, (DWORD)dummyFunction);
+		s_origCBattle_OnRenderAddr = SokuLib::TamperDword(&SokuLib::VTable_Battle.onRender, dummyFunction);
+		s_origCSelect_OnRenderAddr = SokuLib::TamperDword(&SokuLib::VTable_Select.onRender, dummyFunction);
 	} else {
-		SokuLib::TamperDword(SokuLib::vtbl_CBattle + SokuLib::OFFSET_ON_RENDER, s_origCBattle_OnRenderAddr);
-		SokuLib::TamperDword(SokuLib::vtbl_CSelect + SokuLib::OFFSET_ON_RENDER, s_origCSelect_OnRenderAddr);
+		SokuLib::TamperDword(&SokuLib::VTable_Battle.onRender, s_origCBattle_OnRenderAddr);
+		SokuLib::TamperDword(&SokuLib::VTable_Select.onRender, s_origCSelect_OnRenderAddr);
 	}
 	::VirtualProtect((PVOID)RDATA_SECTION_OFFSET, RDATA_SECTION_SIZE, old, &old);
 }
@@ -438,7 +437,7 @@ static void threadLoop(void *)
 	}
 }
 
-int __fastcall CLogo_OnProcess(T *This) {
+int __fastcall CLogo_OnProcess(SokuLib::Logo *This) {
 	int ret = (This->*s_origCLogo_OnProcess)();
 
 	if (ret == SokuLib::SCENE_TITLE) {
@@ -534,11 +533,9 @@ int __fastcall CLogo_OnProcess(T *This) {
 	return ret;
 }
 
-int __fastcall CSelect_OnProcess(T *This) {
+int __fastcall CSelect_OnProcess(SokuLib::Select *This) {
 	int ret = (This->*s_origCSelect_OnProcess)();
 
-	//*0x8A000C + 0x2438 Stage
-	//*0x8A000C + 0x244C Music
 	if (stop)
 		return -1;
 	//if (ret == SokuLib::SCENE_LOADING)
@@ -548,7 +545,7 @@ int __fastcall CSelect_OnProcess(T *This) {
 	return ret;
 }
 
-int __fastcall CBattle_OnProcess(T *This) {
+int __fastcall CBattle_OnProcess(SokuLib::Battle *This) {
 	auto &battle = SokuLib::getBattleMgr();
 	Trainer::GameEndedPacket endPacket;
 
@@ -628,9 +625,9 @@ extern "C" __declspec(dllexport) bool Initialize(HMODULE hMyModule, HMODULE hPar
 
 	DWORD old;
 	::VirtualProtect((PVOID)RDATA_SECTION_OFFSET, RDATA_SECTION_SIZE, PAGE_EXECUTE_WRITECOPY, &old);
-	s_origCLogo_OnProcess   = SokuLib::union_cast<int (T::*)()>(SokuLib::TamperDword(SokuLib::vtbl_CLogo + SokuLib::OFFSET_ON_PROCESS,   (DWORD)CLogo_OnProcess));
-	s_origCBattle_OnProcess = SokuLib::union_cast<int (T::*)()>(SokuLib::TamperDword(SokuLib::vtbl_CBattle + SokuLib::OFFSET_ON_PROCESS, (DWORD)CBattle_OnProcess));
-	s_origCSelect_OnProcess = SokuLib::union_cast<int (T::*)()>(SokuLib::TamperDword(SokuLib::vtbl_CSelect + SokuLib::OFFSET_ON_PROCESS, (DWORD)CSelect_OnProcess));
+	s_origCLogo_OnProcess   = SokuLib::TamperDword(&SokuLib::VTable_Logo.onProcess,   CLogo_OnProcess);
+	s_origCBattle_OnProcess = SokuLib::TamperDword(&SokuLib::VTable_Battle.onProcess, CBattle_OnProcess);
+	s_origCSelect_OnProcess = SokuLib::TamperDword(&SokuLib::VTable_Select.onProcess, CSelect_OnProcess);
 	::VirtualProtect((PVOID)RDATA_SECTION_OFFSET, RDATA_SECTION_SIZE, old, &old);
 
 	VirtualProtect((PVOID)TEXT_SECTION_OFFSET, TEXT_SECTION_SIZE, PAGE_EXECUTE_WRITECOPY, &old);
@@ -639,11 +636,11 @@ extern "C" __declspec(dllexport) bool Initialize(HMODULE hMyModule, HMODULE hPar
 	*(int *)PAYLOAD_ADDRESS_GET_INPUTS = newOffset;
 
 	newOffset = reinterpret_cast<int>(loadDeckData) - PAYLOAD_NEXT_INSTR_DECK_INFOS;
-	s_origLoadDeckData = SokuLib::union_cast<void (__stdcall *)(char *, void *, SokuLib::deckInfo &, int, SokuLib::mVC9Dequeue<short> &)>(*(int *)PAYLOAD_ADDRESS_DECK_INFOS + PAYLOAD_NEXT_INSTR_DECK_INFOS);
+	s_origLoadDeckData = reinterpret_cast<void (__stdcall *)(char *, void *, SokuLib::DeckInfo &, int, SokuLib::Dequeue<short> &)>(*(int *)PAYLOAD_ADDRESS_DECK_INFOS + PAYLOAD_NEXT_INSTR_DECK_INFOS);
 	*(int *)PAYLOAD_ADDRESS_DECK_INFOS = newOffset;
 	VirtualProtect((PVOID)TEXT_SECTION_OFFSET, TEXT_SECTION_SIZE, old, &old);
 
-	::FlushInstructionCache(GetCurrentProcess(), NULL, 0);
+	::FlushInstructionCache(GetCurrentProcess(), nullptr, 0);
 
 	return true;
 }
