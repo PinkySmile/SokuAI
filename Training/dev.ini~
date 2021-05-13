@@ -1,3 +1,0 @@
-[Module]
-AITrainer=Z:/Windows/Users/PinkySmile/Documents/GitHub/SokuAI/cmake-build-debug-visual-studio/SokuAITrainer.dll
-MemoryPatch=Modules/MemoryPatch/MemoryPatch.dll
