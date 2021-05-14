@@ -297,8 +297,11 @@ class BaseAI:
     def on_timeout(self):
         self.on_lose()
 
-    def on_game_start(self, input_delay):
+    def on_game_start(self, my_chr, opponent_chr, input_delay):
         pass
+
+    def can_play_as(self, char_id):
+        return True
 
     def can_play_against(self, char_id):
         return True

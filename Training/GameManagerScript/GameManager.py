@@ -33,11 +33,21 @@ class GameManager:
                 time.sleep(0.1)
 
     def run_once(self, stage, music, left_params, right_params, frame_timout, input_delay):
+        if not self.left_ai.can_play_against(right_params["character"]):
+            raise Exception("LeftAI cannot play against character " + str(right_params["character"]))
+        if not self.left_ai.can_play_as(left_params["character"]):
+            raise Exception("LeftAI cannot play as character " + str(left_params["character"]))
+
+        if not self.right_ai.can_play_as(left_params["character"]):
+            raise Exception("RightAI cannot play against character " + str(left_params["character"]))
+        if not self.right_ai.can_play_against(right_params["character"]):
+            raise Exception("RightAI cannot play as character " + str(right_params["character"]))
+
         state = self.start_game_sequence(stage, music, left_params, right_params)
         left_inputs = [BaseAI.BaseAI.EMPTY] * input_delay
         right_inputs = [BaseAI.BaseAI.EMPTY] * input_delay
-        self.left_ai.on_game_start(input_delay)
-        self.right_ai.on_game_start(input_delay)
+        self.left_ai.on_game_start(left_params["character"], right_params["character"], input_delay)
+        self.right_ai.on_game_start(right_params["character"], left_params["character"], input_delay)
         while True:
             try:
                 frame_timout -= 1
@@ -75,10 +85,6 @@ class GameManager:
                 return winner
 
     def run(self, left_params, right_params, stage=0, music=0, nb=1, frame_timout=float("inf"), input_delay=0):
-        if not self.left_ai.can_play_against(right_params["character"]):
-            raise Exception("LeftAI cannot play against character " + str(right_params["character"]))
-        if not self.right_ai.can_play_against(left_params["character"]):
-            raise Exception("RightAI cannot play against character " + str(left_params["character"]))
         result = []
         for i in range(nb):
             result.append(self.run_once(stage, music, left_params, right_params, frame_timout, input_delay))
