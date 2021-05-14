@@ -1,5 +1,7 @@
 import random
 
+from Training import DeckFactory
+
 
 class BaseAI:
     DOWN = 1
@@ -281,6 +283,11 @@ class BaseAI:
         ]
     }
 
+    def __init__(self, chr, palette):
+        self.chr = chr
+        self.palette = palette
+        self.deck_factory = DeckFactory.DeckFactory()
+
     def on_win(self):
         pass
 
@@ -289,6 +296,19 @@ class BaseAI:
 
     def on_timeout(self):
         self.on_lose()
+
+    def on_game_start(self, input_delay):
+        pass
+
+    def can_play_against(self, char_id):
+        return True
+
+    def get_prefered_character(self):
+        return {
+            "character": self.chr,
+            "palette": self.palette,
+            "deck": self.deck_factory.build_deck(self.chr)
+        }
 
     @staticmethod
     def get_action(me, opponent, my_projectiles, opponent_projectiles, weather_infos):
