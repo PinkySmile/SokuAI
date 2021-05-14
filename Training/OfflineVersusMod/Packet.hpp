@@ -178,6 +178,8 @@ namespace Trainer
 	struct GameEndedPacket {
 		Opcode op;
 		unsigned char winner;
+		unsigned char leftScore;
+		unsigned char rightScore;
 	};
 
 	struct SetHealthPacket {

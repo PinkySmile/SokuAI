@@ -221,12 +221,18 @@ Data size: 0 byte
 Requests the on going game to be ended prematurely.
 If no game is in progress, it has no effect.
 
+Note that this is only a request. The client can decide to postpone or ignore the request entirely.
+The server should not expect the game to end as soon as this opcode is sent and keep sending GAME_INPUT
+packets until a GAME_ENDED is received for example.
+
 ### GAME_ENDED (0x0B) Client only
-Data size: 1 byte
+Data size: 3 byte
 
 Byte 0: Winner side (0 if the game was canceled, 1 if left won and 2 if the right won)
+Byte 1: Left player's score (number of round won)
+Byte 2: Right player's score (number of round won)
 
-Sent at the end of any game the server
+Sent at the end of any game to the server
 
 ### OK (0x0C) Client only
 Data size: 0 byte

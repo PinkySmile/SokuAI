@@ -26,11 +26,15 @@ class InvalidHandshakeError(Exception):
 
 
 class GameEndedException(Exception):
-    winner = 0
-
-    def __init__(self, winner):
-        self.winner = winner
-        super().__init__("Winner is " + ["no one", "left", "right"][winner])
+    def __init__(self, packet):
+        self.winner = packet[0]
+        self.leftScore = packet[1]
+        self.rightScore = packet[2]
+        super().__init__(
+            "Winner is {} with a score of {}-{}".format(
+                ["no one", "left", "right"][self.winner], self.leftScore, self.rightScore
+            )
+        )
 
 
 class ProtocolError(Exception):
@@ -146,7 +150,7 @@ class GameInstance:
     def recv_game_frame(self):
         byte = self.socket.recv(1)
         if byte[0] == OPCODE_GAME_ENDED:
-            raise GameEndedException(self.socket.recv(1)[0])
+            raise GameEndedException(self.socket.recv(3))
         if byte[0] == OPCODE_ERROR:
             raise ProtocolError(self.socket.recv(1)[0])
         if byte[0] != OPCODE_GAME_FRAME:

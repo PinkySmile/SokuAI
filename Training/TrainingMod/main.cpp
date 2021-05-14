@@ -593,6 +593,8 @@ int __fastcall CBattle_OnProcess(SokuLib::Battle *This) {
 			gameFinished = false;
 			endPacket.op = Trainer::OPCODE_GAME_ENDED;
 			endPacket.winner = 0 + (battle.leftCharacterManager.score == 2) + (battle.rightCharacterManager.score == 2) * 2;
+			endPacket.leftScore = battle.leftCharacterManager.score;
+			endPacket.rightScore = battle.rightCharacterManager.score;
 			send(sock, reinterpret_cast<const char *>(&endPacket), sizeof(endPacket), 0);
 			return SokuLib::SCENE_TITLE;
 		}
