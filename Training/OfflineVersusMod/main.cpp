@@ -541,6 +541,8 @@ int __fastcall CBattle_OnProcess(SokuLib::Battle *This) {
 
 	int ret = (This->*s_origCBattle_OnProcess)();
 
+	if (SokuLib::menuManager.isInMenu && ret == SokuLib::SCENE_BATTLE)
+		return ret;
 	if (!gameFinished) {
 		size_t allocSize = sizeof(Trainer::GameFramePacket) + (battle.leftCharacterManager.objects.list.size + battle.rightCharacterManager.objects.list.size) * sizeof(Trainer::Object);
 		char *buffer = new char[allocSize];

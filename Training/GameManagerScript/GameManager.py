@@ -61,10 +61,10 @@ class GameManager:
                     self.game_instance.end_game()
 
                 left_inputs.append(self.left_ai.get_inputs(
-                    state["left"], state["right"], state["weather"], state["left_objs"], state["right_objs"]
+                    state["left"], state["right"], state["left_objs"], state["right_objs"], state["weather"]
                 ))
-                right_inputs.append(self.left_ai.get_inputs(
-                    state["right"], state["left"], state["weather"], state["right_objs"], state["left_objs"]
+                right_inputs.append(self.right_ai.get_inputs(
+                    state["right"], state["left"], state["right_objs"], state["left_objs"], state["weather"]
                 ))
 
                 state = self.game_instance.tick({

@@ -1,6 +1,5 @@
 import random
-
-from Training import DeckFactory
+import DeckFactory
 
 
 class BaseAI:
@@ -313,8 +312,7 @@ class BaseAI:
             "deck": self.deck_factory.build_deck(self.chr)
         }
 
-    @staticmethod
-    def get_action(me, opponent, my_projectiles, opponent_projectiles, weather_infos):
+    def get_action(self, me, opponent, my_projectiles, opponent_projectiles, weather_infos):
         return random.choice(BaseAI.actions)
 
     def get_inputs(self, me, opponent, my_projectiles, opponent_projectiles, weather_infos):

@@ -108,6 +108,20 @@ class GameInstance:
         "suwakoCooldown",
         "objectCount"
     ]
+    obj_elem_names = [
+        "direction",
+        "ownerRelPos.x",
+        "ownerRelPos.y",
+        "ownerOppRelPos.x",
+        "ownerOppRelPos.y",
+        "action",
+        "image",
+    ]
+    weather_elem_name = [
+        "displayed",
+        "active",
+        "timer"
+    ]
 
     def __init__(self, exe_path, ini_path, port):
         if ini_path is None:
