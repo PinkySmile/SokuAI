@@ -97,6 +97,7 @@ static void fillState(const SokuLib::CharacterManager &source, const SokuLib::Ch
 		destination.distToBackCorner = source.objectBase.position.x - 40;
 		destination.distToFrontCorner = 1240 - source.objectBase.position.x;
 	}
+	destination.distToGround = source.objectBase.position.y;
 	destination.action = source.objectBase.action;
 	destination.actionBlockId = source.objectBase.actionBlockId;
 	destination.animationCounter = source.objectBase.animationCounter;

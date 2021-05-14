@@ -75,6 +75,7 @@ class GameInstance:
         "opponentRelativePos.y",
         "distToLeftCorner",
         "distToRightCorner",
+        "distToGround",
         "action",
         "actionBlockId",
         "animationCounter",
@@ -140,23 +141,24 @@ class GameInstance:
 
     @staticmethod
     def parse_character_state(packet):
-        return struct.unpack('<b2fffHHHHIHH?HBHHHHHB5sH15sBHHHHHHHHHHHB', packet)
+        return struct.unpack('<b2ffffHHHHIHH?HBHHHHHB5sH15sBHHHHHHHHHHHB', packet)
 
     def recv_game_frame(self):
-        byte = self.socket.recv(199)
+        byte = self.socket.recv(1)
         if byte[0] == OPCODE_GAME_ENDED:
-            raise GameEndedException(byte[1])
+            raise GameEndedException(self.socket.recv(1)[0])
         if byte[0] == OPCODE_ERROR:
-            raise ProtocolError(byte[1])
-        if len(byte) != 199:
-            print(byte)
-            raise InvalidPacketError(byte)
+            raise ProtocolError(self.socket.recv(1)[0])
         if byte[0] != OPCODE_GAME_FRAME:
             raise InvalidPacketError(byte)
+        byte = self.socket.recv(206)
+        if len(byte) != 206:
+            print(byte)
+            raise InvalidPacketError(byte)
         result = {
-            "left": GameInstance.parse_character_state(byte[1:95]),
-            "right": GameInstance.parse_character_state(byte[95:189]),
-            "weather": struct.unpack('<IIH', byte[189:199]),
+            "left": GameInstance.parse_character_state(byte[:98]),
+            "right": GameInstance.parse_character_state(byte[98:196]),
+            "weather": struct.unpack('<IIH', byte[196:206]),
             "left_objs": [],
             "right_objs": []
         }

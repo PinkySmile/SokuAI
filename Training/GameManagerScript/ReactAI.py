@@ -1,9 +1,46 @@
 import BaseAI
 from GameInstance import GameInstance
-import pprint
+
+remilia_high_block_moves = [
+    302,
+    306,
+    307,
+    308,
+    309,
+    320
+]
+remilia_low_block_moves = [
+    301,
+    304
+]
 
 
-pp = pprint.PrettyPrinter(indent=4)
+def get_right_be(me, op, move, char):
+    if me['maxSpirit'] == 0:
+        return get_right_block(move, char)
+    if move == 304:
+        return "be2"
+    if move == 302 and op["frameCount"] > 15:
+        return "be6"
+    if move == 307:
+        return "be6"
+    if move == 308 and me["distToGround"] == 0:
+        return "be2"
+    if move == 308 and me["distToGround"] > 60:
+        return "be6"
+    if move == 309:
+        return "be6"
+    if move == 325 and op["frameCount"] > 5 and me["distToGround"] > 60:
+        return "be6"
+    return get_right_block(move, char)
+
+
+def get_right_block(move, char):
+    if char != 6:
+        return "backward"
+    if move in remilia_low_block_moves:
+        return "block_low"
+    return "backward"
 
 
 class ReactAI(BaseAI.BaseAI):
@@ -11,14 +48,14 @@ class ReactAI(BaseAI.BaseAI):
         super().__init__(6, palette)
         self.input_delay = 0
 
-    def on_win(self):
-        pass
+    # def on_win(self):
+    #     pass
 
-    def on_lose(self):
-        pass
+    # def on_lose(self):
+    #     pass
 
-    def on_timeout(self):
-        self.on_lose()
+    # def on_timeout(self):
+    #     self.on_lose()
 
     def on_game_start(self, my_chr, opponent_chr, input_delay):
         self.input_delay = input_delay
@@ -36,4 +73,10 @@ class ReactAI(BaseAI.BaseAI):
         my_objs = [dict(zip(GameInstance.obj_elem_names, i)) for i in my_projectiles]
         op_objs = [dict(zip(GameInstance.obj_elem_names, i)) for i in opponent_projectiles]
         weather = dict(zip(GameInstance.weather_elem_name, weather_infos))
+
+        print(op_state["action"], op_state["actionBlockId"], op_state["animationCounter"], op_state["animationSubFrame"], op_state["frameCount"])
+        if 300 <= op_state["action"] < 400 and 150 <= my_state["action"] <= 158:
+            return get_right_be(my_state, op_state, op_state["action"], 6)
+        if 300 <= op_state["action"] < 400:
+            return get_right_block(op_state["action"], 6)
         return "nothing"

@@ -45,7 +45,7 @@ class BaseAI:
         "nothing",
         "forward",
         "backward",
-        "block",
+        "block_low",
         "forward_jump",
         "backward_jump",
         "neutral_jump",
@@ -64,7 +64,8 @@ class BaseAI:
         "switch_to_card_2",
         "switch_to_card_3",
         "switch_to_card_4",
-        "use_current_card"
+        "use_current_card",
+        "upgrade_skillcard"
     ]
     actions_buffers = {
         "1a": [
@@ -116,7 +117,7 @@ class BaseAI:
             {"A": False, "B": True, "C": False, "D": False, "SC": False, "SW": False, "H": FRONT, "V": NEUTRAL},
         ],
         "1c": [
-            {"A": True, "B": False, "C": True, "D": False, "SC": False, "SW": False, "H": BACK, "V": DOWN}
+            {"A": False, "B": False, "C": True, "D": False, "SC": False, "SW": False, "H": BACK, "V": DOWN}
         ],
         "2c": [
             {"A": False, "B": False, "C": True, "D": False, "SC": False, "SW": False, "H": NEUTRAL, "V": DOWN}
@@ -196,8 +197,8 @@ class BaseAI:
         "backward": [
             {"A": False, "B": False, "C": False, "D": False, "SC": False, "SW": False, "H": BACK, "V": NEUTRAL}
         ],
-        "block": [
-            {"A": False, "B": False, "C": False, "D": False, "SC": False, "SW": False, "H": BACK, "V": NEUTRAL}
+        "block_low": [
+            {"A": False, "B": False, "C": False, "D": False, "SC": False, "SW": False, "H": BACK, "V": DOWN}
         ],
         "forward_jump": [
             {"A": False, "B": False, "C": False, "D": False, "SC": False, "SW": False, "H": FRONT, "V": UP}
@@ -279,6 +280,9 @@ class BaseAI:
         ],
         "use_current_card": [
             {"A": False, "B": False, "C": False, "D": False, "SC": True, "SW": False, "H": NEUTRAL, "V": NEUTRAL}
+        ],
+        "upgrade_skillcard": [
+            {"A": False, "B": False, "C": False, "D": False, "SC": True, "SW": False, "H": BACK, "V": NEUTRAL}
         ]
     }
 
@@ -320,4 +324,7 @@ class BaseAI:
             self.buffered_input = BaseAI.actions_buffers[
                 self.get_action(me, opponent, my_projectiles, opponent_projectiles, weather_infos)
             ].copy()
+            for i, v in enumerate(self.buffered_input):
+                self.buffered_input[i] = v.copy()
+                self.buffered_input[i]["H"] *= me[0]
         return self.buffered_input.pop(0)

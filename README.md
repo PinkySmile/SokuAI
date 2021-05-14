@@ -136,14 +136,14 @@ The hello packet hasn't yet been successfully processed
 A game is still being played or the game is not ready to start a new game
 
 ### GAME_FRAME (0x08) Client only
-Data size: 198 + nbObjects * 23
+Data size: 206 + nbObjects * 23
 
-- Bytes 0 - 93: Left character state;
-- Bytes 94 - 187: Right character state;
-- Bytes 188 - 191: Displayed weather (List [here](https://github.com/SokuDev/SokuLib/blob/51486a0c400201313f6afff1155e8f84bbb9d809/src/Core/Weather.hpp#L11);
-- Bytes 191 - 195: Active weather (List [here](https://github.com/SokuDev/SokuLib/blob/51486a0c400201313f6afff1155e8f84bbb9d809/src/Core/Weather.hpp#L11));
-- Bytes 196 - 197: Weather timer (0 - 999);
-- Bytes 198 - N: Other objects
+- Bytes 0 - 97: Left character state;
+- Bytes 98 - 195: Right character state;
+- Bytes 196 - 199: Displayed weather (List [here](https://github.com/SokuDev/SokuLib/blob/51486a0c400201313f6afff1155e8f84bbb9d809/src/Core/Weather.hpp#L11);
+- Bytes 200 - 203: Active weather (List [here](https://github.com/SokuDev/SokuLib/blob/51486a0c400201313f6afff1155e8f84bbb9d809/src/Core/Weather.hpp#L11));
+- Bytes 204 - 205: Weather timer (0 - 999);
+- Bytes 206 - N: Other objects
 
 Character state:
 - 1 byte: Direction (-1 if facing left or 1 if facing right)
@@ -151,6 +151,7 @@ Character state:
 - 4 bytes: (float) Opponent relative position Y
 - 4 bytes: (float) Distance to back corner
 - 4 bytes: (float) Distance to front corner
+- 4 bytes: (float) Distance to ground
 - 2 bytes: Soku action (List [here](https://github.com/SokuDev/SokuLib/blob/51486a0c400201313f6afff1155e8f84bbb9d809/src/Core/CharacterManager.hpp#L25)));
 - 2 bytes: Action block index (Block index in the action);
 - 2 bytes: Animation counter (Animation index);

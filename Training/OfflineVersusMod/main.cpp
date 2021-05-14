@@ -93,6 +93,7 @@ static void fillState(const SokuLib::CharacterManager &source, const SokuLib::Ch
 		destination.distToBackCorner = source.objectBase.position.x - 40;
 		destination.distToFrontCorner = 1240 - source.objectBase.position.x;
 	}
+	destination.distToGround = source.objectBase.position.y;
 	destination.action = source.objectBase.action;
 	destination.actionBlockId = source.objectBase.actionBlockId;
 	destination.animationCounter = source.objectBase.animationCounter;
@@ -152,7 +153,6 @@ void __fastcall KeymapManagerSetInputs(SokuLib::KeymapManager *This)
 	if (startRequested) {
 		auto &menu = SokuLib::currentScene->to<SokuLib::Select>();
 
-		This->input.b = 0;
 		if (menu.leftSelectionStage == 3 || menu.leftSelectionStage == 0) {
 			memset(&This->input, 0, sizeof(This->input));
 			This->input.a = 1;
@@ -520,8 +520,13 @@ int __fastcall CSelect_OnProcess(SokuLib::Select *This) {
 		for (int i = 0; i < 20; i++)
 			SokuLib::rightPlayerInfo.effectiveDeck[i] = decks[i];
 	}
-	if (ret == SokuLib::SCENE_TITLE && startRequested)
-		sendOpcode(Trainer::OPCODE_GAME_CANCEL);
+	if (ret == SokuLib::SCENE_TITLE && startRequested) {
+		Trainer::GameEndedPacket endPacket;
+
+		endPacket.op = Trainer::OPCODE_GAME_ENDED;
+		endPacket.winner = 0;
+		send(sock, reinterpret_cast<const char *>(&endPacket), sizeof(endPacket), 0);
+	}
 	startRequested &= ret == SokuLib::SCENE_SELECT;
 	return ret;
 }
@@ -574,6 +579,8 @@ int __fastcall CBattle_OnProcess(SokuLib::Battle *This) {
 		endPacket.op = Trainer::OPCODE_GAME_ENDED;
 		endPacket.winner = 0 + (battle.leftCharacterManager.score == 2) + (battle.rightCharacterManager.score == 2) * 2;
 		send(sock, reinterpret_cast<const char *>(&endPacket), sizeof(endPacket), 0);
+		if (cancel)
+			return SokuLib::SCENE_TITLE;
 		return ret;
 	}
 	if (stop)

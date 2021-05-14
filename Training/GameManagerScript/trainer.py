@@ -19,4 +19,4 @@ player1 = player1Ai.get_prefered_character()
 player2 = player2Ai.get_prefered_character()
 
 game = GameManager.GameManager(client, port, (player1Ai, player2Ai), tps=600, ini_path=ini, has_sound=False, has_display=True)
-print(game.run(player1, player2, stage=13, music=13, nb=5, frame_timout=18000, input_delay=0))
+print(game.run(player1, player2, stage=13, music=13, nb=5, input_delay=0))

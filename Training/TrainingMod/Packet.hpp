@@ -110,6 +110,7 @@ namespace Trainer
 		SokuLib::Vector2f opponentRelativePos;
 		float distToBackCorner;
 		float distToFrontCorner;
+		float distToGround;
 		SokuLib::Action action;
 		unsigned short actionBlockId;
 		unsigned short animationCounter;
