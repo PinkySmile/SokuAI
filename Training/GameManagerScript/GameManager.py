@@ -3,6 +3,28 @@ import BaseAI
 import time
 import sys
 
+chr_names = [
+    "Reimu",
+    "Marisa",
+    "Sakuya",
+    "Alice",
+    "Patchouli",
+    "Youmu",
+    "Remilia",
+    "Yuyuko",
+    "Yukari",
+    "Suika",
+    "Reisen",
+    "Aya",
+    "Komachi",
+    "Iku",
+    "Tenshi",
+    "Sanae",
+    "Cirno",
+    "Meiling",
+    "Utsuho",
+    "Suwako"
+]
 
 class GameManager:
     game_instance: GameInstance.GameInstance = None
@@ -33,15 +55,10 @@ class GameManager:
                 time.sleep(0.1)
 
     def run_once(self, stage, music, left_params, right_params, frame_timout, input_delay):
-        if not self.left_ai.can_play_against(right_params["character"]):
-            raise Exception("LeftAI cannot play against character " + str(right_params["character"]))
-        if not self.left_ai.can_play_as(left_params["character"]):
-            raise Exception("LeftAI cannot play as character " + str(left_params["character"]))
-
-        if not self.right_ai.can_play_as(left_params["character"]):
-            raise Exception("RightAI cannot play against character " + str(left_params["character"]))
-        if not self.right_ai.can_play_against(right_params["character"]):
-            raise Exception("RightAI cannot play as character " + str(right_params["character"]))
+        if not self.left_ai.can_play_matchup(left_params["character"], right_params["character"]):
+            raise Exception("LeftAI cannot play as {} against {}".format(chr_names[left_params["character"]], chr_names[right_params["character"]]))
+        if not self.right_ai.can_play_matchup(right_params["character"], left_params["character"]):
+            raise Exception("RightAI cannot play as {} against {}".format(chr_names[right_params["character"]], chr_names[left_params["character"]]))
 
         state = self.start_game_sequence(stage, music, left_params, right_params)
         left_inputs = [BaseAI.BaseAI.EMPTY] * input_delay
@@ -72,16 +89,17 @@ class GameManager:
                     "right": right_inputs.pop(0),
                 })
             except GameInstance.GameEndedException:
-                winner = sys.exc_info()[1].winner
+                exc = sys.exc_info()[1]
+                winner = exc.winner
                 if winner == 1:
-                    self.left_ai.on_win()
-                    self.right_ai.on_lose()
+                    self.left_ai.on_win(exc.left_score, exc.right_score)
+                    self.right_ai.on_lose(exc.right_score, exc.left_score)
                 elif winner == 2:
-                    self.right_ai.on_win()
-                    self.left_ai.on_lose()
+                    self.right_ai.on_win(exc.left_score, exc.right_score)
+                    self.left_ai.on_lose(exc.right_score, exc.left_score)
                 else:
-                    self.left_ai.on_timeout()
-                    self.right_ai.on_timeout()
+                    self.left_ai.on_timeout(exc.left_score, exc.right_score)
+                    self.right_ai.on_timeout(exc.right_score, exc.left_score)
                 return winner
 
     def run(self, left_params, right_params, stage=0, music=0, nb=1, frame_timout=float("inf"), input_delay=0):

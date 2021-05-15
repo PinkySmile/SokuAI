@@ -286,27 +286,24 @@ class BaseAI:
         ]
     }
 
-    def __init__(self, chr, palette):
-        self.chr = chr
+    def __init__(self, char, palette):
+        self.chr = char
         self.palette = palette
         self.deck_factory = DeckFactory.DeckFactory()
 
-    def on_win(self):
+    def on_win(self, my_score, opponent_score):
         pass
 
-    def on_lose(self):
+    def on_lose(self, my_score, opponent_score):
         pass
 
-    def on_timeout(self):
-        self.on_lose()
+    def on_timeout(self, my_score, opponent_score):
+        self.on_lose(my_score, opponent_score)
 
     def on_game_start(self, my_chr, opponent_chr, input_delay):
         pass
 
-    def can_play_as(self, char_id):
-        return True
-
-    def can_play_against(self, char_id):
+    def can_play_matchup(self, my_char_id, op_char_id):
         return True
 
     def get_prefered_character(self):

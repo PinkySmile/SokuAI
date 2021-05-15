@@ -61,11 +61,8 @@ class ReactAI(BaseAI.BaseAI):
         self.input_delay = input_delay
         pass
 
-    def can_play_as(self, char_id):
-        return char_id == 6  # We can only play Remilia
-
-    def can_play_against(self, char_id):
-        return char_id == 6  # We can only play against Remilia
+    def can_play_matchup(self, my_char_id, op_char_id):
+        return my_char_id == 6 and op_char_id == 6  # We can only play Remirror
 
     def get_action(self, me, opponent, my_projectiles, opponent_projectiles, weather_infos):
         my_state = dict(zip(GameInstance.state_elems_names, me))

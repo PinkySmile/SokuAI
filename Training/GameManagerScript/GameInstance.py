@@ -28,11 +28,11 @@ class InvalidHandshakeError(Exception):
 class GameEndedException(Exception):
     def __init__(self, packet):
         self.winner = packet[0]
-        self.leftScore = packet[1]
-        self.rightScore = packet[2]
+        self.left_score = packet[1]
+        self.right_score = packet[2]
         super().__init__(
             "Winner is {} with a score of {}-{}".format(
-                ["no one", "left", "right"][self.winner], self.leftScore, self.rightScore
+                ["no one", "left", "right"][self.winner], self.left_score, self.right_score
             )
         )
 
