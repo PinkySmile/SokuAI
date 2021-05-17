@@ -94,6 +94,7 @@ weight_table = [
     lambda x: x / 70,                     # objectCount
 ]
 
+
 class NeuronAI(BaseAI.BaseAI):
     path = os.path.dirname(inspect.getfile(inspect.currentframe())) + "/generated/"
 
@@ -122,8 +123,10 @@ class NeuronAI(BaseAI.BaseAI):
         self.index = index
         self.generation = generation
         self.neurons = []
+        self.character = 0
 
     def init(self, my_chr, opponent_chr):
+        self.character = my_chr
         if self.generation < 0:
             self.generation = 0
             self.create_base_neurons()
@@ -236,5 +239,7 @@ class NeuronAI(BaseAI.BaseAI):
             real = BaseAI.BaseAI.actions[-1]
         else:
             real = BaseAI.BaseAI.actions[result]
-        print("Neuron returned {} corresponding to index {} ({})".format(value, result, real))
         return real
+
+    def __str__(self):
+        return "NAI {} gen{}-{}".format(chr_names[self.character], self.generation, self.index)

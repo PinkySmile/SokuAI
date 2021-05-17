@@ -26,6 +26,7 @@ chr_names = [
     "Suwako"
 ]
 
+
 class GameManager:
     game_instance: GameInstance.GameInstance = None
     left_ai: BaseAI.BaseAI = None
@@ -100,7 +101,7 @@ class GameManager:
                 else:
                     self.left_ai.on_timeout(exc.left_score, exc.right_score)
                     self.right_ai.on_timeout(exc.right_score, exc.left_score)
-                return winner
+                return winner, (exc.left_score, state["left"][14]), (exc.right_score, state["right"][14])
 
     def run(self, left_params, right_params, stage=0, music=0, nb=1, frame_timout=float("inf"), input_delay=0):
         result = []
