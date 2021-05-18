@@ -32,14 +32,14 @@ class GameManager:
     left_ai: BaseAI.BaseAI = None
     right_ai: BaseAI.BaseAI = None
 
-    def __init__(self, game_path, port, ais, tps=60, has_display=True, has_sound=True, ini_path=None):
-        self.game_instance = GameInstance.GameInstance(game_path, ini_path, port)
+    def __init__(self, game_path, port, ais, tps=60, has_display=True, has_sound=False, ini_path=None, just_connect=False):
+        self.game_instance = GameInstance.GameInstance(game_path, ini_path, port, just_connect)
         self.left_ai = ais[0]
         self.right_ai = ais[1]
+        self.port = port
         self.game_instance.set_display_mode(has_display)
         self.game_instance.set_game_speed(tps)
-        if not has_sound:
-            self.game_instance.set_game_volume(0, 0)
+        self.game_instance.set_game_volume(has_sound[0] if has_sound else 0, has_sound[1] if has_sound else 0)
 
     def start_game_sequence(self, stage, music, left_params, right_params):
         while True:

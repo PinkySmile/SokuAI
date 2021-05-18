@@ -27,7 +27,7 @@ static bool begin = true;
 static bool cancel = false;
 
 static bool startRequested = false;
-static bool inputsReceived = false;
+volatile bool inputsReceived = false;
 
 static unsigned char decks[20];
 static unsigned char palette;
@@ -628,6 +628,7 @@ extern "C" __declspec(dllexport) bool Initialize(HMODULE hMyModule, HMODULE hPar
 	int newOffset = (int)KeymapManagerSetInputs - PAYLOAD_NEXT_INSTR_GET_INPUTS;
 	s_origKeymapManager_SetInputs = SokuLib::union_cast<void (SokuLib::KeymapManager::*)()>(*(int *)PAYLOAD_ADDRESS_GET_INPUTS + PAYLOAD_NEXT_INSTR_GET_INPUTS);
 	*(int *)PAYLOAD_ADDRESS_GET_INPUTS = newOffset;
+	*(int *)0x47d7a0 = 0xC3;
 	VirtualProtect((PVOID)TEXT_SECTION_OFFSET, TEXT_SECTION_SIZE, old, &old);
 
 	::FlushInstructionCache(GetCurrentProcess(), nullptr, 0);

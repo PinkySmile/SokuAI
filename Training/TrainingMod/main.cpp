@@ -9,12 +9,17 @@
 #include "Exceptions.hpp"
 
 #define CHECK_PACKET_SIZE(requested_type, size) if (size != sizeof(requested_type)) return sendError(Trainer::ERROR_INVALID_PACKET)
+#define printf(...)
+#define puts(s)
 
 static int (SokuLib::Battle::*s_origCBattle_OnRenderAddr)();
 static int (SokuLib::Select::*s_origCSelect_OnRenderAddr)();
+static int (SokuLib::Loading::*s_origCLoading_OnRenderAddr)();
+static int (SokuLib::Title::*s_origCTitle_OnRenderAddr)();
 static int (SokuLib::Logo::*s_origCLogo_OnProcess)();
 static int (SokuLib::Battle::*s_origCBattle_OnProcess)();
 static int (SokuLib::Select::*s_origCSelect_OnProcess)();
+int (__fastcall *og_loadTexture)(unsigned *, char *, int **, unsigned *);
 static void (SokuLib::KeymapManager::*s_origKeymapManager_SetInputs)();
 
 static SOCKET sock;
@@ -30,7 +35,7 @@ static bool begin = true;
 static bool cancel = false;
 
 static bool startRequested = false;
-static bool inputsReceived = false;
+volatile bool inputsReceived = false;
 
 static float counter = 0;
 static unsigned tps = 60;
@@ -60,6 +65,11 @@ static const std::map<SokuLib::Character, std::vector<unsigned short>> character
 	{SokuLib::CHARACTER_YUKARI, {200, 201, 202, 203, 204, 205, 206, 207, 208, 215}},
 	{SokuLib::CHARACTER_YUYUKO, {200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 219}}
 };
+
+void sigsegv(int)
+{
+	fwrite("Oh oh !\n", 1, 8, stdout);
+}
 
 void updateInput(SokuLib::KeyInput &old, const Trainer::Input &n) {
 	old.a = n.A ? (old.a + 1) : 0;
@@ -146,9 +156,16 @@ static void fillState(const SokuLib::ObjectManager &object, const SokuLib::Chara
 	destination.imageID = object.image.number;
 }
 
+bool isFrame = false;
+
 void __fastcall KeymapManagerSetInputs(SokuLib::KeymapManager *This)
 {
+	puts("Input");
 	(This->*s_origKeymapManager_SetInputs)();
+	if (SokuLib::sceneId != SokuLib::newSceneId) {
+		puts("Diff");
+		return;
+	}
 	if (begin && SokuLib::sceneId == SokuLib::SCENE_TITLE) {
 		begin = false;
 		memset(&This->input, 0, sizeof(This->input));
@@ -164,22 +181,24 @@ void __fastcall KeymapManagerSetInputs(SokuLib::KeymapManager *This)
 		SokuLib::leftPlayerInfo.palette = palettes.first;
 		SokuLib::rightPlayerInfo.palette = palettes.second;
 	}
-	if (SokuLib::sceneId == SokuLib::SCENE_BATTLE) {
+	if (isFrame) {
 		auto &battle = SokuLib::getBattleMgr();
 		Trainer::Input *input;
 		SokuLib::KeyInput *lastInput;
+		static bool left = true;
 
-		if (This == battle.leftCharacterManager.keyManager->keymapManager) {
+		if (left) {
 			input = &inputs.first;
 			lastInput = &lastInputs.first;
-		} else if (This == battle.rightCharacterManager.keyManager->keymapManager) {
+		} else  {
 			input = &inputs.second;
 			lastInput = &lastInputs.second;
-		} else
-			return;
+		}
+		left = !left;
 		updateInput(*lastInput, *input);
 		memcpy(&This->input, lastInput, sizeof(*lastInput));
 	}
+	puts("End");
 	//static bool lasts = false;
 	//if (SokuLib::sceneId == SokuLib::SCENE_SELECTCL || SokuLib::sceneId == SokuLib::SCENE_SELECTSV) {
 	//	memset(&This->input, 0, sizeof(This->input));
@@ -200,7 +219,7 @@ void __fastcall KeymapManagerSetInputs(SokuLib::KeymapManager *This)
 
 int dummyFunction()
 {
-	return 0;
+	return 1;
 }
 
 static void sendError(Trainer::Errors code)
@@ -216,39 +235,58 @@ static void sendOpcode(Trainer::Opcode code)
 	::send(sock, reinterpret_cast<const char *>(&code), sizeof(code), 0);
 }
 
+int __fastcall fakeLoad(unsigned *puParm1, char *pcParm2, int **param_3, unsigned *param_4)
+{
+	return og_loadTexture(puParm1, "empty.png", param_3, param_4);
+}
+
 static void swapDisplay(bool enabled)
 {
+	*(char *)0x89ffbd = !enabled;
 	if (!enabled == !displayed)
 		return;
 
 	DWORD old;
 
 	displayed = enabled;
-	::VirtualProtect((PVOID)RDATA_SECTION_OFFSET, RDATA_SECTION_SIZE, PAGE_EXECUTE_WRITECOPY, &old);
+	//::VirtualProtect((PVOID)RDATA_SECTION_OFFSET, RDATA_SECTION_SIZE, PAGE_EXECUTE_WRITECOPY, &old);
+	VirtualProtect((PVOID)TEXT_SECTION_OFFSET, TEXT_SECTION_SIZE, PAGE_EXECUTE_WRITECOPY, &old);
 	if (!displayed) {
-		s_origCBattle_OnRenderAddr = SokuLib::TamperDword(&SokuLib::VTable_Battle.onRender, dummyFunction);
-		s_origCSelect_OnRenderAddr = SokuLib::TamperDword(&SokuLib::VTable_Select.onRender, dummyFunction);
+		og_loadTexture = reinterpret_cast<int (__fastcall *)(unsigned *, char *, int **, unsigned *)>(SokuLib::TamperNearJmpOpr(0x40505c, fakeLoad));
+	//	s_origCTitle_OnRenderAddr = SokuLib::TamperDword(&SokuLib::VTable_Title.onRender, dummyFunction);
+	//	s_origCBattle_OnRenderAddr = SokuLib::TamperDword(&SokuLib::VTable_Battle.onRender, dummyFunction);
+	//	s_origCSelect_OnRenderAddr = SokuLib::TamperDword(&SokuLib::VTable_Select.onRender, dummyFunction);
+	//	s_origCLoading_OnRenderAddr = SokuLib::TamperDword(&SokuLib::VTable_Loading.onRender, dummyFunction);
 	} else {
-		SokuLib::TamperDword(&SokuLib::VTable_Battle.onRender, s_origCBattle_OnRenderAddr);
-		SokuLib::TamperDword(&SokuLib::VTable_Select.onRender, s_origCSelect_OnRenderAddr);
+		SokuLib::TamperNearJmpOpr(0x40505c, og_loadTexture);
+	//	SokuLib::TamperDword(&SokuLib::VTable_Title.onRender, s_origCTitle_OnRenderAddr);
+	//	SokuLib::TamperDword(&SokuLib::VTable_Battle.onRender, s_origCBattle_OnRenderAddr);
+	//	SokuLib::TamperDword(&SokuLib::VTable_Select.onRender, s_origCSelect_OnRenderAddr);
+	//	SokuLib::TamperDword(&SokuLib::VTable_Loading.onRender, s_origCLoading_OnRenderAddr);
 	}
-	::VirtualProtect((PVOID)RDATA_SECTION_OFFSET, RDATA_SECTION_SIZE, old, &old);
+	VirtualProtect((PVOID)TEXT_SECTION_OFFSET, TEXT_SECTION_SIZE, old, &old);
+	//::VirtualProtect((PVOID)RDATA_SECTION_OFFSET, RDATA_SECTION_SIZE, old, &old);
 }
 
 static void startGame(const Trainer::StartGamePacket &startData)
 {
-	SokuLib::profile1.name = "SokuAI";
-	SokuLib::profile1.file = "SokuAI.pf";
-	SokuLib::profile2.name = "SokuAI";
-	SokuLib::profile2.file = "SokuAI.pf";
-
 	sendOpcode(Trainer::OPCODE_OK);
 	SokuLib::changeScene(SokuLib::SCENE_SELECT);
 	SokuLib::waitForSceneChange();
 	SokuLib::setBattleMode(SokuLib::BATTLE_MODE_VSPLAYER, SokuLib::BATTLE_SUBMODE_PLAYING2);
 
+	gameFinished = false;
+	cancel = false;
+	inputsReceived = false;
+	startRequested = true;
+
 	memset(&lastInputs.first, 0, sizeof(lastInputs.first));
 	memset(&lastInputs.second, 0, sizeof(lastInputs.second));
+
+	SokuLib::profile1.name = "SokuAI";
+	SokuLib::profile1.file = "SokuAI.pf";
+	SokuLib::profile2.name = "SokuAI";
+	SokuLib::profile2.file = "SokuAI.pf";
 
 	SokuLib::leftPlayerInfo.character = startData.leftCharacter;
 	SokuLib::rightPlayerInfo.character = startData.rightCharacter;
@@ -263,11 +301,6 @@ static void startGame(const Trainer::StartGamePacket &startData)
 	SokuLib::currentScene->to<SokuLib::Select>().selectedMusic = startData.musicId;// Music
 	((unsigned *)0x00898680)[0] = 0x008986A8; //Init both inputs
 	((unsigned *)0x00898680)[1] = 0x008986A8; //Init both inputs
-
-	gameFinished = false;
-	cancel = false;
-	inputsReceived = false;
-	startRequested = true;
 }
 
 static bool isDeckValid(SokuLib::Character chr, const unsigned char (&deck)[20])
@@ -366,6 +399,8 @@ static void handlePacket(const Trainer::Packet &packet, unsigned int size)
 	case Trainer::OPCODE_SOUND:
 		CHECK_PACKET_SIZE(Trainer::SoundPacket, size);
 		sendOpcode(Trainer::OPCODE_OK);
+		reinterpret_cast<void (*)(int)>(0x43e200)(packet.sound.bgmVolume);
+		reinterpret_cast<void (*)(int)>(0x43e230)(packet.sound.sfxVolume);
 		return;
 	case Trainer::OPCODE_SET_HEALTH:
 		CHECK_PACKET_SIZE(Trainer::SetHealthPacket, size);
@@ -437,6 +472,8 @@ int __fastcall CLogo_OnProcess(SokuLib::Logo *This) {
 	int ret = (This->*s_origCLogo_OnProcess)();
 
 	if (ret == SokuLib::SCENE_TITLE) {
+		*(int **)0x008a0008 = nullptr;
+		*(char *)0x89ffbd = true;
 		if (__argc <= 1) {
 			MessageBoxA(SokuLib::window, "No port provided. Please provide a port in the command line.", "Port not given", MB_ICONERROR);
 			return -1;
@@ -448,6 +485,7 @@ int __fastcall CLogo_OnProcess(SokuLib::Logo *This) {
 		long port = strtol(arg, &end, 0);
 		char *s = nullptr;
 
+		SetWindowTextA(SokuLib::window, ("Game on port " + std::to_string(port)).c_str());
 		if (*end) {
 			MessageBoxA(
 				SokuLib::window,
@@ -530,6 +568,7 @@ int __fastcall CLogo_OnProcess(SokuLib::Logo *This) {
 }
 
 int __fastcall CSelect_OnProcess(SokuLib::Select *This) {
+	puts("CSelect_OnProcess");
 	int ret = (This->*s_origCSelect_OnProcess)();
 
 	if (stop)
@@ -544,10 +583,12 @@ int __fastcall CSelect_OnProcess(SokuLib::Select *This) {
 			SokuLib::rightPlayerInfo.effectiveDeck[i] = decks[20 + i];
 	}
 	startRequested &= ret == SokuLib::SCENE_SELECT;
+	printf("Return %i\n", ret);
 	return ret;
 }
 
 int __fastcall CBattle_OnProcess(SokuLib::Battle *This) {
+	puts("CBattle_OnProcess");
 	auto &battle = SokuLib::getBattleMgr();
 	Trainer::GameEndedPacket endPacket;
 
@@ -561,7 +602,11 @@ int __fastcall CBattle_OnProcess(SokuLib::Battle *This) {
 	}
 	counter += tps / 60.f;
 	while (counter >= 1) {
+		puts("Game frame");
+		isFrame = true;
 		int ret = (This->*s_origCBattle_OnProcess)();
+		isFrame = false;
+		puts("After frame");
 		if (!gameFinished) {
 			size_t allocSize = sizeof(Trainer::GameFramePacket) + (battle.leftCharacterManager.objects.list.size + battle.rightCharacterManager.objects.list.size) * sizeof(Trainer::Object);
 			char *buffer = new char[allocSize];
@@ -596,18 +641,24 @@ int __fastcall CBattle_OnProcess(SokuLib::Battle *This) {
 			endPacket.leftScore = battle.leftCharacterManager.score;
 			endPacket.rightScore = battle.rightCharacterManager.score;
 			send(sock, reinterpret_cast<const char *>(&endPacket), sizeof(endPacket), 0);
+			puts("Return title");
 			return SokuLib::SCENE_TITLE;
 		}
 		if (stop)
 			return -1;
 		counter--;
 	}
+	puts("Return battle");
 	return SokuLib::SCENE_BATTLE;
 }
 
 // 設定ロード
 void LoadSettings(LPCSTR profilePath) {
 	// 自動シャットダウン
+	//FILE *_;
+	//AllocConsole();
+	//freopen_s(&_, "CONOUT$", "w", stdout);
+	//freopen_s(&_, "CONOUT$", "w", stderr);
 }
 
 extern "C" __declspec(dllexport) bool CheckVersion(const BYTE hash[16]) {
@@ -616,8 +667,6 @@ extern "C" __declspec(dllexport) bool CheckVersion(const BYTE hash[16]) {
 
 #define PAYLOAD_ADDRESS_GET_INPUTS 0x40A45E
 #define PAYLOAD_NEXT_INSTR_GET_INPUTS (PAYLOAD_ADDRESS_GET_INPUTS + 4)
-#define PAYLOAD_ADDRESS_DECK_INFOS 0x437D24
-#define PAYLOAD_NEXT_INSTR_DECK_INFOS (PAYLOAD_ADDRESS_DECK_INFOS + 4)
 
 extern "C" __declspec(dllexport) bool Initialize(HMODULE hMyModule, HMODULE hParentModule) {
 	char profilePath[1024 + MAX_PATH];
@@ -632,16 +681,17 @@ extern "C" __declspec(dllexport) bool Initialize(HMODULE hMyModule, HMODULE hPar
 	s_origCLogo_OnProcess   = SokuLib::TamperDword(&SokuLib::VTable_Logo.onProcess,   CLogo_OnProcess);
 	s_origCBattle_OnProcess = SokuLib::TamperDword(&SokuLib::VTable_Battle.onProcess, CBattle_OnProcess);
 	s_origCSelect_OnProcess = SokuLib::TamperDword(&SokuLib::VTable_Select.onProcess, CSelect_OnProcess);
+	SokuLib::TamperDword(&SokuLib::VTable_Logo.onRender, dummyFunction);
 	::VirtualProtect((PVOID)RDATA_SECTION_OFFSET, RDATA_SECTION_SIZE, old, &old);
 
+	swapDisplay(false);
 	VirtualProtect((PVOID)TEXT_SECTION_OFFSET, TEXT_SECTION_SIZE, PAGE_EXECUTE_WRITECOPY, &old);
 	int newOffset = (int)KeymapManagerSetInputs - PAYLOAD_NEXT_INSTR_GET_INPUTS;
 	s_origKeymapManager_SetInputs = SokuLib::union_cast<void (SokuLib::KeymapManager::*)()>(*(int *)PAYLOAD_ADDRESS_GET_INPUTS + PAYLOAD_NEXT_INSTR_GET_INPUTS);
 	*(int *)PAYLOAD_ADDRESS_GET_INPUTS = newOffset;
+	*(int *)0x47d7a0 = 0xC3;
 	VirtualProtect((PVOID)TEXT_SECTION_OFFSET, TEXT_SECTION_SIZE, old, &old);
-
 	::FlushInstructionCache(GetCurrentProcess(), nullptr, 0);
-
 	return true;
 }
 

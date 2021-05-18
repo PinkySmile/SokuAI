@@ -63,15 +63,34 @@ class GameThread(threading.Thread):
             pass
         except ConnectionResetError:
             traceback.print_exc()
-            print("Our number of allies grows thin !")
+            print("Our list of allies grows thin !")
+            print(self.game.game_instance.fd.wait())
             # TODO: Do we try to play it again on another game instance ?
+            # TODO: In any case, we should restart the game instance for later use
             self.update_match_ais(match, -1)
+
+
+class GameOpenThread(threading.Thread):
+    def __init__(self, container, *args):
+        super().__init__(None, None)
+        self.container = container
+        self.args = args
+
+    def run(self):
+        self.container.append(GameManager.GameManager(*self.args))
 
 
 class SwissTournamentManager:
     def __init__(self, game_pool, port_start, game_path, input_delay=0, time_limit=float("inf"), first_to=3, ini_path=None):
         print("Opening", game_pool, "games")
-        self.game_managers = [GameManager.GameManager(game_path, port_start + i, (None, None), tps=6000, has_display=False, has_sound=False, ini_path=ini_path) for i in range(game_pool)]
+        self.game_managers = []
+        threads = []
+        for i in range(game_pool):
+            thr = GameOpenThread(self.game_managers, "{}/{}/th123.exe".format(game_path, i), port_start + i, (None, None), 60000, False, (10, 10), ini_path)
+            thr.start()
+            threads.append(thr)
+        for thread in threads:
+            thread.join()
         self.ais = []
         self.first_to = first_to
         self.input_delay = input_delay
