@@ -3,6 +3,7 @@ import inspect
 import os
 import math
 import Neuron
+import ObjectsNeuron
 import BaseAI
 
 chr_names = [
@@ -27,14 +28,21 @@ chr_names = [
     "Utsuho",
     "Suwako"
 ]
-input_neurons_count = (38 + 3 + 14) * 2
+state_neurons_count = 38 + 3 + 14
+input_neurons_count = state_neurons_count * 2 + 3 + 2
+objects_offset = 0
+weather_offset = 3
+state_offset = 5
 hand_index = 22
 skills_index = 24
 
 new_neuron_chance = (1, 100)
-link_break_chance = (1, 1000)
-link_create_chance = (4, 1000)
 
+weather_weight = [
+    lambda x: x / 19 if x <= 19 else -1, # displayed
+    lambda x: x / 19 if x <= 19 else -1, # active
+    lambda x: x / 999,                   # timer
+]
 weight_table = [
     lambda x: x,                          # direction
     lambda x: x / 1240,                   # opponentRelativePos.x
@@ -141,21 +149,27 @@ class NeuronAI(BaseAI.BaseAI):
 
     def save(self, my_chr, opponent_chr):
         with open(NeuronAI.path + "{} vs {}/{}/{}.neur".format(chr_names[my_chr], chr_names[opponent_chr], self.generation, self.index), "w") as fd:
-            for neuron in self.neurons:
+            fd.write(str(self.palette) + "\n")
+            for neuron in self.neurons[input_neurons_count:]:
                 neuron.save(fd)
 
     def on_game_start(self, my_chr, opponent_chr, input_delay):
         self.input_delay = input_delay
 
     def create_base_neurons(self):
-        self.neurons = []
-        for i in range(input_neurons_count):  # I'd like to import GameInstance for this though
+        self.neurons = [
+            ObjectsNeuron.ObjectsNeuron(0),
+            ObjectsNeuron.ObjectsNeuron(1)
+        ]
+        for i in range(2, input_neurons_count):  # I'd like to import GameInstance for this though
             self.neurons.append(Neuron.Neuron(i))
 
     def load_file(self, my_chr, opponent_chr):
         self.create_base_neurons()
         with open(NeuronAI.path + "{} vs {}/{}/{}.neur".format(chr_names[my_chr], chr_names[opponent_chr], self.generation, self.index)) as fd:
-            for line in fd.read().split("\n"):
+            lines = fd.read().split("\n")
+            self.palette = int(lines[0])
+            for line in lines[1:]:
                 neuron = Neuron.Neuron(len(self.neurons))
                 neuron.load_from_line(line)
                 self.neurons.append(neuron)
@@ -181,27 +195,7 @@ class NeuronAI(BaseAI.BaseAI):
 
         # Mutate neurons
         for neuron in child.neurons:
-            to_remove = []
-            for i, link in enumerate(neuron.links):
-                # Mutate links
-                if random.randint(0, 1) == 0:
-                    link[0] += math.exp(random.random() / -2) / 4
-                else:
-                    link[0] -= math.exp(random.random() / -2) / 4
-                link[0] = max(min(1, link[0]), -1)
-                if len(neuron.links) != 0 and random.randrange(0, link_break_chance[1]) < link_break_chance[0]:
-                    to_remove.insert(0, i)
-            if neuron.id >= input_neurons_count:
-                if random.randint(0, 1) == 0:
-                    neuron.value += math.exp(random.random() / -2) / 4
-                else:
-                    neuron.value -= math.exp(random.random() / -2) / 4
-            for i in to_remove:
-                neuron.links.pop(i)
-            # Add some links
-            while random.randrange(0, link_create_chance[1]) < link_create_chance[0]:
-                deps = neuron.get_dependencies()
-                neuron.links.append([random.random() * 2 - 1, random.choice(tuple(filter(lambda x: x.id not in deps and x.id != input_neurons_count, child.neurons)))])
+            neuron.mutate(child.neurons)
 
         # Add some neurons
         while random.randrange(0, new_neuron_chance[1]) < new_neuron_chance[0]:
@@ -229,10 +223,14 @@ class NeuronAI(BaseAI.BaseAI):
 
     def get_action(self, me, opponent, my_projectiles, opponent_projectiles, weather_infos):
         rr = me[:hand_index] + tuple(me[hand_index]) + me[hand_index+1:skills_index] + tuple(me[skills_index]) + me[skills_index+1:]
+        self.neurons[  objects_offset  ].objects = my_projectiles
+        self.neurons[objects_offset + 1].objects = opponent_projectiles
+        for i, k in enumerate(weather_infos):
+            self.neurons[weather_offset + i].value = weather_weight[i](k)
         for i, v in enumerate(rr):
-            self.neurons[i].value = weight_table[i](v)
+            self.neurons[i + state_offset].value = weight_table[i](v)
         for i, v in enumerate(opponent[:hand_index] + tuple(opponent[hand_index]) + opponent[hand_index+1:skills_index] + tuple(opponent[skills_index]) + opponent[skills_index+1:]):
-            self.neurons[i + input_neurons_count // 2].value = weight_table[i](v)
+            self.neurons[i + state_offset + state_neurons_count].value = weight_table[i](v)
         value = self.neurons[input_neurons_count].get_value()
         result = int(round((value + 1) * len(BaseAI.BaseAI.actions) / 2 - 0.5))
         if result == len(BaseAI.BaseAI.actions):

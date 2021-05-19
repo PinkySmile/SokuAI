@@ -2,6 +2,14 @@ import GameManager
 import math
 import threading
 import traceback
+import pprint
+
+
+display = False
+# display = True
+sound = None
+# sound = (10, 10)
+pp = pprint.PrettyPrinter(indent=4)
 
 
 class GameThread(threading.Thread):
@@ -42,12 +50,15 @@ class GameThread(threading.Thread):
 
     def run(self):
         match = None
-        try:
-            while True:
+        while True:
+            try:
                 match = self.matches.pop(0)
-                print("Playing match {} vs {}".format(match[0][0], match[1][0]))
-                self.game.left_ai = match[0][0]
-                self.game.right_ai = match[1][0]
+            except IndexError:
+                return
+            print("Playing match {} vs {}".format(match[0][0], match[1][0]))
+            self.game.left_ai = match[0][0]
+            self.game.right_ai = match[1][0]
+            try:
                 self.update_match_ais(match, self.get_match_winner(
                     self.game.run(
                         self.game.left_ai.get_prefered_character(),
@@ -59,15 +70,11 @@ class GameThread(threading.Thread):
                         self.input_delay
                     )
                 ))
-        except IndexError:
-            pass
-        except ConnectionResetError:
-            traceback.print_exc()
-            print("Our list of allies grows thin !")
-            print(self.game.game_instance.fd.wait())
-            # TODO: Do we try to play it again on another game instance ?
-            # TODO: In any case, we should restart the game instance for later use
-            self.update_match_ais(match, -1)
+            except ConnectionResetError:
+                traceback.print_exc()
+                print("Match was aborted")
+                self.update_match_ais(match, -1)
+                return
 
 
 class GameOpenThread(threading.Thread):
@@ -81,12 +88,12 @@ class GameOpenThread(threading.Thread):
 
 
 class SwissTournamentManager:
-    def __init__(self, game_pool, port_start, game_path, input_delay=0, time_limit=float("inf"), first_to=3, ini_path=None):
+    def __init__(self, game_pool, port_start, game_path, input_delay=0, time_limit=float("inf"), first_to=2, ini_path=None):
         print("Opening", game_pool, "games")
         self.game_managers = []
         threads = []
         for i in range(game_pool):
-            thr = GameOpenThread(self.game_managers, "{}/{}/th123.exe".format(game_path, i), port_start + i, (None, None), 60000, False, (10, 10), ini_path)
+            thr = GameOpenThread(self.game_managers, "{}/{}/th123e.exe".format(game_path, i), port_start + i, (None, None), 60000, display, sound, ini_path)
             thr.start()
             threads.append(thr)
         for thread in threads:
@@ -109,7 +116,7 @@ class SwissTournamentManager:
             if leftover is not None:
                 pool.insert(0, leftover)
             leftover = None
-            print("Pool {} contains {}".format(pool[-1][2], pool))
+            pp.pprint("Pool {} contains {}".format(pool[-1][2], pool))
             # TODO: Try to uniform the sides each AI played and match AIs with the same number of wins in a row together
             # TODO: Don't match AIs together twice
             result += zip(pool[:len(pool)//2], pool[len(pool)//2:] if len(pool) % 2 == 0 else pool[len(pool)//2:-1])
@@ -136,5 +143,6 @@ class SwissTournamentManager:
         print("Starting tournament...")
         print("There are {} players so {} rounds".format(len(self.ais), nb))
         for i in range(nb):
+            print(f"Round {i} start !")
             self.play_matches(self.make_matches(all_ais))
         return all_ais

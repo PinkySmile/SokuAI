@@ -129,14 +129,19 @@ class GameInstance:
     ]
 
     def __init__(self, exe_path, ini_path=None, port=10800, just_connect=False):
+        print(f"Starting instance {exe_path} {ini_path} {port} {just_connect}")
+        self.baseSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP)
+        self.baseSocket.bind(("127.0.0.1", port))
+        self.baseSocket.listen(5)
+        self.fd = 0
+        self.reconnect(exe_path, ini_path, port, just_connect)
+
+    def reconnect(self, exe_path, ini_path=None, port=10800, just_connect=False):
         if not just_connect:
             if ini_path is None:
                 self.fd = subprocess.Popen([exe_path, str(port)])
             else:
                 self.fd = subprocess.Popen([exe_path, ini_path, str(port)])
-        self.baseSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP)
-        self.baseSocket.bind(("127.0.0.1", port))
-        self.baseSocket.listen(5)
         self.socket = self.baseSocket.accept()[0]
         # Send hello packet
         packet = b'\x00\x2A\x9D\x6E\xF5'
@@ -192,10 +197,10 @@ class GameInstance:
         return self.recv_game_frame()
 
     def quit(self):
-        self.socket.send(bytes([OPCODE_GOODBYE]))
-        if self.socket.recv(1) == OPCODE_ERROR:
-            raise ProtocolError(self.socket.recv(1))
         try:
+            self.socket.send(bytes([OPCODE_GOODBYE]))
+            if self.socket.recv(1) == OPCODE_ERROR:
+                raise ProtocolError(self.socket.recv(1))
             self.socket.recv(1)
             raise Exception("Wtf ?")
         except ConnectionResetError:

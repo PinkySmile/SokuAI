@@ -40,7 +40,6 @@ volatile bool inputsReceived = false;
 static float counter = 0;
 static unsigned tps = 60;
 static unsigned char decks[40];
-static std::pair<unsigned char, unsigned char> palettes;
 static std::pair<Trainer::Input, Trainer::Input> inputs;
 static std::pair<SokuLib::KeyInput, SokuLib::KeyInput> lastInputs;
 static const std::map<SokuLib::Character, std::vector<unsigned short>> characterSpellCards{
@@ -65,11 +64,6 @@ static const std::map<SokuLib::Character, std::vector<unsigned short>> character
 	{SokuLib::CHARACTER_YUKARI, {200, 201, 202, 203, 204, 205, 206, 207, 208, 215}},
 	{SokuLib::CHARACTER_YUYUKO, {200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 219}}
 };
-
-void sigsegv(int)
-{
-	fwrite("Oh oh !\n", 1, 8, stdout);
-}
 
 void updateInput(SokuLib::KeyInput &old, const Trainer::Input &n) {
 	old.a = n.A ? (old.a + 1) : 0;
@@ -178,8 +172,6 @@ void __fastcall KeymapManagerSetInputs(SokuLib::KeymapManager *This)
 	if (startRequested) {
 		memset(&This->input, 0, sizeof(This->input));
 		This->input.a = 1;
-		SokuLib::leftPlayerInfo.palette = palettes.first;
-		SokuLib::rightPlayerInfo.palette = palettes.second;
 	}
 	if (isFrame) {
 		auto &battle = SokuLib::getBattleMgr();
@@ -270,6 +262,11 @@ static void swapDisplay(bool enabled)
 
 static void startGame(const Trainer::StartGamePacket &startData)
 {
+	SokuLib::leftPlayerInfo.character = startData.leftCharacter;
+	SokuLib::rightPlayerInfo.character = startData.rightCharacter;
+	SokuLib::leftPlayerInfo.palette = startData.leftPalette;
+	SokuLib::rightPlayerInfo.palette = startData.rightPalette;
+
 	sendOpcode(Trainer::OPCODE_OK);
 	SokuLib::changeScene(SokuLib::SCENE_SELECT);
 	SokuLib::waitForSceneChange();
@@ -290,10 +287,9 @@ static void startGame(const Trainer::StartGamePacket &startData)
 
 	SokuLib::leftPlayerInfo.character = startData.leftCharacter;
 	SokuLib::rightPlayerInfo.character = startData.rightCharacter;
-	palettes.first = startData.leftPalette;
-	palettes.second = startData.rightPalette;
-	SokuLib::leftPlayerInfo.deck = 0;
-	SokuLib::rightPlayerInfo.deck = 0;
+	SokuLib::leftPlayerInfo.palette = startData.leftPalette;
+	SokuLib::rightPlayerInfo.palette = startData.rightPalette;
+
 	memcpy(decks, startData.leftDeck, 20);
 	memcpy(decks + 20, startData.rightDeck, 20);
 
@@ -339,10 +335,6 @@ static bool verifyStartData(const Trainer::StartGamePacket &packet)
 		return sendError(Trainer::ERROR_INVALID_LEFT_CHARACTER), false;
 	if (packet.rightCharacter >= SokuLib::CHARACTER_RANDOM)
 		return sendError(Trainer::ERROR_INVALID_RIGHT_CHARACTER), false;
-	if (packet.leftPalette > 7)
-		return sendError(Trainer::ERROR_INVALID_LEFT_PALETTE), false;
-	if (packet.rightPalette > 7)
-		return sendError(Trainer::ERROR_INVALID_RIGHT_PALETTE), false;
 	if (!isDeckValid(packet.leftCharacter, packet.leftDeck))
 		return sendError(Trainer::ERROR_INVALID_LEFT_DECK), false;
 	if (!isDeckValid(packet.rightCharacter, packet.rightDeck))
