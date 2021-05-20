@@ -166,13 +166,16 @@ class NeuronAI(BaseAI.BaseAI):
 
     def load_file(self, my_chr, opponent_chr):
         self.create_base_neurons()
-        with open(NeuronAI.path + "{} vs {}/{}/{}.neur".format(chr_names[my_chr], chr_names[opponent_chr], self.generation, self.index)) as fd:
+        file = NeuronAI.path + "{} vs {}/{}/{}.neur".format(chr_names[my_chr], chr_names[opponent_chr], self.generation, self.index)
+        print("Loading", file)
+        with open(file) as fd:
             lines = fd.read().split("\n")
             self.palette = int(lines[0])
             for line in lines[1:]:
-                neuron = Neuron.Neuron(len(self.neurons))
-                neuron.load_from_line(line)
-                self.neurons.append(neuron)
+                if line:
+                    neuron = Neuron.Neuron(len(self.neurons))
+                    neuron.load_from_line(line)
+                    self.neurons.append(neuron)
         for neuron in self.neurons:
             neuron.resolve_links(self.neurons)
         self.neurons.sort(key=lambda a: a.id)
@@ -233,11 +236,11 @@ class NeuronAI(BaseAI.BaseAI):
             self.neurons[i + state_offset + state_neurons_count].value = weight_table[i](v)
         value = self.neurons[input_neurons_count].get_value()
         result = int(round((value + 1) * len(BaseAI.BaseAI.actions) / 2 - 0.5))
-        if result == len(BaseAI.BaseAI.actions):
-            real = BaseAI.BaseAI.actions[-1]
-        else:
-            real = BaseAI.BaseAI.actions[result]
-        return real
+        try:
+            return BaseAI.BaseAI.actions[min(len(BaseAI.BaseAI.actions) - 1, max(0, result))]
+        except:
+            print(min(len(BaseAI.BaseAI.actions) - 1, max(0, result)), value, result)
+            raise
 
     def __str__(self):
         return "NAI {} gen{}-{}".format(chr_names[self.character], self.generation, self.index)

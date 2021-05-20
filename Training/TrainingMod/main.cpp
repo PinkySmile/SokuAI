@@ -165,11 +165,7 @@ void __fastcall KeymapManagerSetInputs(SokuLib::KeymapManager *This)
 		memset(&This->input, 0, sizeof(This->input));
 		This->input.a = 1;
 	}
-	if (gameFinished) {
-		memset(&This->input, 0, sizeof(This->input));
-		This->input.a = 1;
-	}
-	if (startRequested) {
+	if (startRequested || gameFinished) {
 		memset(&This->input, 0, sizeof(This->input));
 		This->input.a = 1;
 	}

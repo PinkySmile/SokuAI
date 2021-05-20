@@ -131,8 +131,11 @@ class GameManager:
                 print("Restarting game from beginning...")
                 return self.run_once(stage, music, left_params, right_params, frame_timout, input_delay, max_crashes - 1)
 
-    def run(self, left_params, right_params, stage=0, music=0, nb=1, frame_timout=float("inf"), input_delay=0):
+    def run(self, left_params, right_params, stage=0, music=0, nb=1, frame_timout=float("inf"), input_delay=0, swap=False):
         result = []
         for i in range(nb):
             result.append(self.run_once(stage, music, left_params, right_params, frame_timout, input_delay))
+            if swap:
+                self.left_ai, self.right_ai = self.right_ai, self.left_ai
+                left_params, right_params = right_params, left_params
         return result

@@ -9,6 +9,7 @@ display = False
 # display = True
 sound = None
 # sound = (10, 10)
+tps = 60000
 pp = pprint.PrettyPrinter(indent=4)
 
 
@@ -25,17 +26,17 @@ class GameThread(threading.Thread):
 
     @staticmethod
     def get_match_winner(results):
-        left_points = sum((result[0] == 1) * 100000 + (result[1][0] - result[2][0]) * 1000 + (result[1][1] - result[2][1]) for result in results)
-        right_points = sum((result[0] == 2) * 100000 + (result[2][0] - result[1][0]) * 1000 + (result[2][1] - result[1][1]) for result in results)
+        left_points = sum((result[0] == 1) * 1000000 + (result[1][0] - result[2][0]) * 20000 + (result[1][1] - result[2][1]) for result in results)
+        right_points = sum((result[0] == 2) * 1000000 + (result[2][0] - result[1][0]) * 20000 + (result[2][1] - result[1][1]) for result in results)
         return (left_points != right_points) + (left_points < right_points)
 
     @staticmethod
-    def update_match_ais(match, winner):
+    def update_match_ais(match, winner, side):
         print("Match {} vs {} {} is {}".format(match[0][0], match[1][0], "result" if winner == 0 else "winner", ["a draw", match[0][0], match[1][0]][winner]))
         match[0][1] <<= 1
         match[1][1] <<= 1
-        match[0][3].append(True)
-        match[1][3].append(False)
+        match[0][3].append(side is True)
+        match[1][3].append(side is False)
         if winner == 0:
             match[0][2] += 0.5
             match[1][2] += 0.5
@@ -49,15 +50,15 @@ class GameThread(threading.Thread):
             match[1][1] |= 1
 
     def run(self):
-        match = None
         while True:
             try:
                 match = self.matches.pop(0)
             except IndexError:
                 return
-            print("Playing match {} vs {}".format(match[0][0], match[1][0]))
-            self.game.left_ai = match[0][0]
-            self.game.right_ai = match[1][0]
+            side = sum(match[0][3]) <= sum(match[1][3])
+            self.game.left_ai = match[0 if side else 1][0]
+            self.game.right_ai = match[1 if side else 0][0]
+            print("Playing match {} vs {}".format(self.game.left_ai, self.game.right_ai))
             try:
                 self.update_match_ais(match, self.get_match_winner(
                     self.game.run(
@@ -67,13 +68,14 @@ class GameThread(threading.Thread):
                         self.music,
                         self.nb,
                         self.frame_timout,
-                        self.input_delay
+                        self.input_delay,
+                        True
                     )
-                ))
+                ), side)
             except ConnectionResetError:
                 traceback.print_exc()
                 print("Match was aborted")
-                self.update_match_ais(match, -1)
+                self.update_match_ais(match, -1, -1)
                 return
 
 
@@ -93,7 +95,7 @@ class SwissTournamentManager:
         self.game_managers = []
         threads = []
         for i in range(game_pool):
-            thr = GameOpenThread(self.game_managers, "{}/{}/th123e.exe".format(game_path, i), port_start + i, (None, None), 60000, display, sound, ini_path)
+            thr = GameOpenThread(self.game_managers, "{}/{}/th123e.exe".format(game_path, i), port_start + i, (None, None), tps, display, sound, ini_path)
             thr.start()
             threads.append(thr)
         for thread in threads:
@@ -116,7 +118,8 @@ class SwissTournamentManager:
             if leftover is not None:
                 pool.insert(0, leftover)
             leftover = None
-            pp.pprint("Pool {} contains {}".format(pool[-1][2], pool))
+            print("Pool {} contains".format(pool[-1][2]))
+            pp.pprint(pool)
             # TODO: Try to uniform the sides each AI played and match AIs with the same number of wins in a row together
             # TODO: Don't match AIs together twice
             result += zip(pool[:len(pool)//2], pool[len(pool)//2:] if len(pool) % 2 == 0 else pool[len(pool)//2:-1])
@@ -136,13 +139,12 @@ class SwissTournamentManager:
         for thread in threads:
             thread.join()
 
-    def play_tournament(self):
+    def play_tournament(self, nb_rounds):
         # AI, win score, score, sides (True is left)
         all_ais = [[ai, 0, 0, []] for ai in self.ais]
-        nb = math.ceil(math.log(len(self.ais), 2))
         print("Starting tournament...")
-        print("There are {} players so {} rounds".format(len(self.ais), nb))
-        for i in range(nb):
+        print("There are {} players and {} rounds".format(len(self.ais), nb_rounds))
+        for i in range(nb_rounds):
             print(f"Round {i} start !")
             self.play_matches(self.make_matches(all_ais))
         return all_ais
