@@ -1,6 +1,7 @@
 import socket
 import subprocess
 import struct
+import psutil
 
 
 OPCODE_HELLO = 0
@@ -142,6 +143,8 @@ class GameInstance:
                 self.fd = subprocess.Popen([exe_path, str(port)])
             else:
                 self.fd = subprocess.Popen([exe_path, ini_path, str(port)])
+            p = psutil.Process(self.fd.pid)
+            p.nice(psutil.HIGH_PRIORITY_CLASS)
         self.socket = self.baseSocket.accept()[0]
         # Send hello packet
         packet = b'\x00\x2A\x9D\x6E\xF5'

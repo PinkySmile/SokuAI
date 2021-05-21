@@ -5,7 +5,11 @@ import sys
 import time
 import math
 import pprint
+import psutil
+import os
 
+p = psutil.Process(os.getpid())
+p.nice(psutil.HIGH_PRIORITY_CLASS)
 
 if len(sys.argv) < 4:
     print("Usage:", sys.argv[0], "<game_path> <port_start> <nb_game_instances> <population_size> <input_delay> [<SWRSToys.ini>]")
@@ -39,7 +43,7 @@ def generate_next_generation(tournament_results):
 # first one is a bit special since we either create the AIs
 print("Loading generation {}".format(latest))
 # TODO: Store the best of latest generation
-tournament.ais = [NeuronAI.NeuronAI(0, i, latest) for i in range(pop_size)]
+tournament.ais = [NeuronAI.NeuronAI(random.randint(0, 71), i, latest) for i in range(pop_size)]
 if latest > 0:
     tournament.ais += [NeuronAI.NeuronAI(random.randint(0, 71), i, latest - 1) for i in range(pop_size // lowering_factor)]
 else:

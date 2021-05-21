@@ -95,7 +95,7 @@ class SwissTournamentManager:
         self.game_managers = []
         threads = []
         for i in range(game_pool):
-            thr = GameOpenThread(self.game_managers, "{}/{}/th123e.exe".format(game_path, i), port_start + i, (None, None), tps, display, sound, ini_path)
+            thr = GameOpenThread(self.game_managers, "{}/{}/th123.exe".format(game_path, i), port_start + i, (None, None), tps, display, sound, ini_path)
             thr.start()
             threads.append(thr)
         for thread in threads:
@@ -118,8 +118,7 @@ class SwissTournamentManager:
             if leftover is not None:
                 pool.insert(0, leftover)
             leftover = None
-            print("Pool {} contains".format(pool[-1][2]))
-            pp.pprint(pool)
+            print("Pool {} contains {} ais".format(pool[-1][2], len(pool)))
             # TODO: Try to uniform the sides each AI played and match AIs with the same number of wins in a row together
             # TODO: Don't match AIs together twice
             result += zip(pool[:len(pool)//2], pool[len(pool)//2:] if len(pool) % 2 == 0 else pool[len(pool)//2:-1])
