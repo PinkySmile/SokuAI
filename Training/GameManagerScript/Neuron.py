@@ -43,7 +43,10 @@ class Neuron:
             self.links.pop(i)
         # Add some links
         while random.randrange(0, self.link_create_chance[1]) < self.link_create_chance[0]:
-            self.links.append([random.random() * 2 - 1, random.choice(tuple(filter(lambda x: self.id not in x.get_dependencies(), others)))])
+            result = tuple(filter(lambda x: self.id not in x.get_dependencies(), others))
+            if len(result):
+                r = random.choice(result)
+                self.links.append([random.random() * 2 - 1, r])
 
     def get_value(self):
         if len(self.links) == 0:
@@ -52,7 +55,7 @@ class Neuron:
         return min(max(val, -1), 1)
 
     def get_dependencies(self):
-        return set(j for i in ((link[1].id, *link[1].get_dependencies()) for link in self.links) for j in i)
+        return set(list(j for i in (link[1].get_dependencies() for link in self.links) for j in i) + [self.id])
 
     def copy(self):
         me = Neuron(self.id)

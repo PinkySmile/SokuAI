@@ -51,7 +51,7 @@ class ObjectsNeuron:
         ) + self.value, 1), -1)
 
     def get_dependencies(self):
-        return set()
+        return {self.id}
 
     def copy(self):
         me = ObjectsNeuron(self.id)

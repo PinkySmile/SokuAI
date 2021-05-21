@@ -19,7 +19,7 @@ nb = int(sys.argv[3])
 pop_size = int(sys.argv[4])
 input_delay = int(sys.argv[5])
 ini = None if len(sys.argv) == 6 else sys.argv[6]
-tournament = SwissTournamentManager.SwissTournamentManager(nb, port, client, input_delay=input_delay, time_limit=5 * 60 * 60, first_to=3, ini_path=ini)
+tournament = SwissTournamentManager.SwissTournamentManager(nb, port, client, input_delay=input_delay, time_limit=5 * 60 * 60, first_to=1, ini_path=ini)
 latest = NeuronAI.NeuronAI.get_latest_gen(6, 6)
 
 
@@ -40,7 +40,7 @@ def generate_next_generation(tournament_results):
 print("Loading generation {}".format(latest))
 # TODO: Store the best of latest generation
 tournament.ais = [NeuronAI.NeuronAI(0, i, latest) for i in range(pop_size)]
-if latest >= 0:
+if latest > 0:
     tournament.ais += [NeuronAI.NeuronAI(random.randint(0, 71), i, latest - 1) for i in range(pop_size // lowering_factor)]
 else:
     tournament.ais += [NeuronAI.NeuronAI(random.randint(0, 71), i + pop_size, latest - 1) for i in range(pop_size // lowering_factor)]
