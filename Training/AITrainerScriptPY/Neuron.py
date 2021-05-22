@@ -15,8 +15,8 @@ class Neuron:
         self.links = []
         elems = [float(i) for i in line.split(",")]
         self.id = int(elems[0])
-        self.value = int(elems[1])
-        for i in range(int(elems[2])):
+        self.value = int(elems[2])
+        for i in range(int(elems[1])):
             self.links.append([elems[3 + i * 2], elems[4 + i * 2]])
 
     def resolve_links(self, elems):

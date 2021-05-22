@@ -24,3 +24,11 @@ add_library(
 )
 target_compile_definitions("SokuAIOfflinePlayer" PRIVATE DIRECTINPUT_VERSION=0x0800 CURL_STATICLIB _CRT_SECURE_NO_WARNINGS $<$<CONFIG:Debug>:_DEBUG>)
 target_link_libraries(SokuAIOfflinePlayer SokuLib shlwapi ws2_32)
+
+add_executable(
+	NeuronAITrainer
+	Training/AITrainerScriptCPP/GameInstance.cpp
+	Training/AITrainerScriptCPP/GameInstance.hpp
+	Training/AITrainerScriptCPP/Exceptions.hpp
+	Training/AITrainerScriptCPP/GameManager.cpp Training/AITrainerScriptCPP/GameManager.hpp Training/AITrainerScriptCPP/BaseAi.cpp Training/AITrainerScriptCPP/BaseAi.hpp Training/AITrainerScriptCPP/SwissTournamentManager.cpp Training/AITrainerScriptCPP/SwissTournamentManager.hpp Training/AITrainerScriptCPP/Neuron.cpp Training/AITrainerScriptCPP/Neuron.hpp Training/AITrainerScriptCPP/ObjectsNeuron.cpp Training/AITrainerScriptCPP/ObjectsNeuron.hpp Training/AITrainerScriptCPP/NeuronAi.cpp Training/AITrainerScriptCPP/NeuronAi.hpp Training/AITrainerScriptCPP/main.cpp Training/AITrainerScriptCPP/Exceptions.cpp)
+target_link_libraries(NeuronAITrainer SokuLib ws2_32)
