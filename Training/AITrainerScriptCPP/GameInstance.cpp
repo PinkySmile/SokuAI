@@ -25,16 +25,37 @@ namespace Trainer
 		const T *operator->() const noexcept { return this->_ptr; }
 	};
 
-	inline Packet *_recvPacket(SOCKET sock)
+	inline int _recv(SOCKET sock, void *buffer, size_t size, int flags, int timeout)
 	{
-		Opcode op;
-		int received = recv(sock, reinterpret_cast<char *>(&op), sizeof(op), 0);
-		size_t expected;
-		Packet *buffer;
-		Packet *buffer2;
+		if (timeout >= 0) {
+			struct timeval t{
+				timeout,
+				0
+			};
+			FD_SET set;
+
+			FD_ZERO(&set);
+			FD_SET(sock, &set);
+			if (select(FD_SETSIZE, &set, nullptr, nullptr, &t) == 0) {
+				printf("Timeout after %i seconds\n", timeout);
+				throw ConnectionResetException();
+			}
+		}
+
+		int received = recv(sock, reinterpret_cast<char *>(buffer), size, flags);
 
 		if (received <= 0)
 			throw ConnectionResetException();
+		return received;
+	}
+
+	inline Packet *_recvPacket(SOCKET sock, int timeout = 30)
+	{
+		Opcode op;
+		int received = _recv(sock, reinterpret_cast<char *>(&op), sizeof(op), 0, timeout);
+		size_t expected;
+		Packet *buffer;
+		Packet *buffer2;
 
 		switch (op) {
 		case OPCODE_HELLO:
@@ -91,7 +112,7 @@ namespace Trainer
 
 		buffer = reinterpret_cast<Packet *>(new char[expected + 1]);
 		buffer->op = op;
-		if (expected != 0 && recv(sock, reinterpret_cast<char *>(buffer) + 1, expected, 0) != expected) {
+		if (expected != 0 && _recv(sock, reinterpret_cast<char *>(buffer) + 1, expected, 0, timeout) != expected) {
 			delete[] buffer;
 			throw InvalidPacketError();
 		}
@@ -105,7 +126,7 @@ namespace Trainer
 			buffer2 = reinterpret_cast<Packet *>(new char[expected + 1 + added]);
 			memcpy(buffer2, buffer, expected + 1);
 			delete[] buffer;
-			if (added != 0 && recv(sock, reinterpret_cast<char *>(&buffer2->gameFrame.objects), added, 0) != added) {
+			if (added != 0 && _recv(sock, reinterpret_cast<char *>(&buffer2->gameFrame.objects), added, 0, timeout) != added) {
 				delete[] buffer2;
 				throw InvalidPacketError();
 			}
@@ -114,9 +135,9 @@ namespace Trainer
 		return buffer;
 	}
 
-	GameInstance::GameFrame GameInstance::_recvGameFrame()
+	GameInstance::GameFrame GameInstance::_recvGameFrame(int timeout)
 	{
-		GuardedPtr<Packet> packet = _recvPacket(this->_socket);
+		GuardedPtr<Packet> packet = _recvPacket(this->_socket, timeout);
 		GameFrame frame;
 
 		if (packet->op == OPCODE_GAME_ENDED)
@@ -248,7 +269,7 @@ namespace Trainer
 			throw ProtocolError(result->error.error);
 		if (result->op != OPCODE_OK)
 			throw UnexpectedPacketError(*result);
-		return this->_recvGameFrame();
+		return this->_recvGameFrame(60);
 	}
 
 	GameInstance::GameFrame GameInstance::tick(GameInstance::GameInputs inputs)
@@ -259,7 +280,7 @@ namespace Trainer
 		packet.left = inputs.left;
 		packet.right = inputs.right;
 		send(this->_socket, reinterpret_cast<char *>(&packet), sizeof(packet), 0);
-		return this->_recvGameFrame();
+		return this->_recvGameFrame(10);
 	}
 
 	void GameInstance::quit()
@@ -380,10 +401,14 @@ namespace Trainer
 		if (this->_processInformation.hProcess != INVALID_HANDLE_VALUE) {
 			TerminateProcess(this->_processInformation.hProcess, 0);
 			WaitForSingleObject(this->_processInformation.hProcess, INFINITE);
+
+			auto code = this->getExitCode();
+
 			CloseHandle(this->_processInformation.hThread);
 			this->_processInformation.hProcess = INVALID_HANDLE_VALUE;
+			return code;
 		}
-		return this->getExitCode();
+		return -1;
 	}
 
 	DWORD GameInstance::getExitCode()

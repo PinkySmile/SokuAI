@@ -12,15 +12,16 @@
 
 using namespace Trainer;
 
-#define LOWERING_FACTOR 6
+#define MATING_FACTOR   10
+#define LOWERING_FACTOR 5
 
-void generateNextGeneration(const std::vector<PlayerEntry> &results, std::vector<std::unique_ptr<NeuronAI>> &ais, unsigned popSize) {
+void generateNextGeneration(const std::vector<PlayerEntry> &results, std::vector<std::unique_ptr<NeuronAI>> &ais, unsigned popSize, unsigned currentLatestGen) {
 	std::vector<std::pair<const NeuronAI *, const NeuronAI *>> pairs;
 	std::vector<const NeuronAI *> bestCandidates;
 	std::vector<NeuronAI *> result;
 	int i;
 
-	for (i = 0; i < results.size() / LOWERING_FACTOR; i++)
+	for (i = 0; i < results.size() / MATING_FACTOR; i++)
 		bestCandidates.push_back(reinterpret_cast<const NeuronAI *>(results[i].ai));
 
 	for (i = 1; i < bestCandidates.size(); i++)
@@ -29,10 +30,16 @@ void generateNextGeneration(const std::vector<PlayerEntry> &results, std::vector
 
 	for (i = 0;;)
 		for (auto &parents : pairs) {
-			result.push_back(parents.first->mateOnce(*parents.second, i, SokuLib::CHARACTER_REMILIA, SokuLib::CHARACTER_REMILIA));
+			result.push_back(parents.first->mateOnce(*parents.second, i, SokuLib::CHARACTER_REMILIA, SokuLib::CHARACTER_REMILIA, currentLatestGen));
 			i++;
 			if (i == popSize) {
-				ais.erase(ais.begin() + bestCandidates.size(), ais.end());
+				ais.erase(std::remove_if(ais.begin(), ais.end(), [&results, popSize](const std::unique_ptr<NeuronAI> &a){
+					auto end = min(results.end(), results.begin() + popSize / LOWERING_FACTOR);
+
+					return std::find_if(results.begin(), end, [&a](const PlayerEntry &e){
+						return e.ai == &*a;
+					}) == end;
+				}), ais.end());
 				ais.reserve(ais.size() + result.size());
 				for (auto child : result)
 					ais.emplace_back(child);
@@ -93,6 +100,7 @@ int main(int argc, char *argv[])
 				return e1.score > e2.score;
 			return e1.wins > e2.wins;
 		});
-		generateNextGeneration(results, ais, popSize);
+		generateNextGeneration(results, ais, popSize, latest);
+		latest++;
 	}
 }

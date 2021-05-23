@@ -82,4 +82,11 @@ namespace Trainer
 			stream << ',' << weight;
 		stream << std::endl;
 	}
+
+	ObjectsNeuron::ObjectsNeuron(const ObjectsNeuron &other) :
+		Neuron(other)
+	{
+		for (int i = 0; i < this->_weights.size(); i++)
+			this->_weights[i] = other._weights[i];
+	}
 }

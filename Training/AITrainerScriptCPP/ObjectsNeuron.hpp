@@ -20,6 +20,7 @@ namespace Trainer
 		std::vector<Object> objects;
 
 		ObjectsNeuron(unsigned i = 0);
+		ObjectsNeuron(const ObjectsNeuron &other);
 		void loadFromLine(const std::string &line) override;
 		void mutate(const std::vector<std::unique_ptr<Neuron>> &others) override;
 		float getValue() override;

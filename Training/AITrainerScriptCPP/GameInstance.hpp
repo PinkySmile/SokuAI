@@ -60,7 +60,7 @@ namespace Trainer
 		PROCESS_INFORMATION _processInformation;
 		unsigned short _port;
 
-		GameFrame _recvGameFrame();
+		GameFrame _recvGameFrame(int timeout);
 	};
 }
 

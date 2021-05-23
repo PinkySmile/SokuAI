@@ -88,10 +88,10 @@ namespace Trainer
 	{
 		this->_neurons.clear();
 		this->_neurons.reserve(STATE_NEURONS_COUNT);
-		this->myObjects = new ObjectsNeuron(0);
-		this->opObjects = new ObjectsNeuron(1);
-		this->_neurons.emplace_back(this->myObjects);
-		this->_neurons.emplace_back(this->opObjects);
+		this->_myObjects = new ObjectsNeuron(0);
+		this->_opObjects = new ObjectsNeuron(1);
+		this->_neurons.emplace_back(this->_myObjects);
+		this->_neurons.emplace_back(this->_opObjects);
 		for (int i = 2; i < INPUT_NEURONS_COUNT; i++)
 			this->_neurons.emplace_back(new Neuron(i));
 	}
@@ -157,7 +157,7 @@ namespace Trainer
 		std::ofstream stream{file};
 
 		printf("Saving to %s\n", file.c_str());
-		stream << this->_palette << std::endl;
+		stream << static_cast<int>(this->_palette) << std::endl;
 		this->_neurons[OBJECTS_OFFSET]->save(stream);
 		this->_neurons[OBJECTS_OFFSET + 1]->save(stream);
 		for (int i = INPUT_NEURONS_COUNT; i < this->_neurons.size(); i++)
@@ -182,7 +182,7 @@ namespace Trainer
 		this->_createBaseNeurons();
 		printf("Loading %s\n", file.c_str());
 		std::getline(stream, line);
-		this->_palette = line[0];
+		this->_palette = std::stoul(line);
 		std::getline(stream, line);
 		this->_neurons[OBJECTS_OFFSET]->loadFromLine(line);
 		std::getline(stream, line);
@@ -204,15 +204,20 @@ namespace Trainer
 				throw Exception("Invalid file. Neuron #" + std::to_string(i) + " have id " + std::to_string(this->_neurons[i]->getId()));
 	}
 
-	NeuronAI *NeuronAI::mateOnce(const NeuronAI &other, unsigned int id, SokuLib::Character myChar, SokuLib::Character opChar) const
+	NeuronAI *NeuronAI::mateOnce(const NeuronAI &other, unsigned int id, SokuLib::Character myChar, SokuLib::Character opChar, unsigned currentLatestGen) const
 	{
-		auto child = new NeuronAI((rand() & 1) == 0 ? this->_palette : other._palette, id, this->_generation + 1);
+		auto child = new NeuronAI((rand() & 1) == 0 ? this->_palette : other._palette, id, currentLatestGen + 1);
 		auto objs1 = new ObjectsNeuron(*reinterpret_cast<ObjectsNeuron *>(&*((rand() & 1) == 0 ? this->_neurons[0] : other._neurons[0])));
 		auto objs2 = new ObjectsNeuron(*reinterpret_cast<ObjectsNeuron *>(&*((rand() & 1) == 0 ? this->_neurons[1] : other._neurons[1])));
 
 		child->_createBaseNeurons();
+		child->_myObjects = objs1;
+		child->_opObjects = objs2;
 		child->_neurons[OBJECTS_OFFSET].reset(objs1);
 		child->_neurons[OBJECTS_OFFSET + 1].reset(objs2);
+		child->_character = myChar;
+		if ((rand() & 0xFF) == 0)
+			child->_palette = rand() % 72;
 
 		// Copy either parent1's or parent2's neuron
 		for (int i = INPUT_NEURONS_COUNT; i < this->_neurons.size() && i < other._neurons.size(); i++)
@@ -259,12 +264,12 @@ namespace Trainer
 		return child;
 	}
 
-	std::vector<NeuronAI *> NeuronAI::mate(const NeuronAI &other, SokuLib::Character myChar, SokuLib::Character opChar, unsigned int startId, unsigned int nb) const
+	std::vector<NeuronAI *> NeuronAI::mate(const NeuronAI &other, SokuLib::Character myChar, SokuLib::Character opChar, unsigned int startId, unsigned int nb, unsigned currentLatestGen) const
 	{
 		std::vector<NeuronAI *> result;
 
 		while (nb--) {
-			result.push_back(this->mateOnce(other, startId, myChar, opChar));
+			result.push_back(this->mateOnce(other, startId, myChar, opChar, currentLatestGen));
 			startId++;
 		}
 		return result;
@@ -272,8 +277,8 @@ namespace Trainer
 
 	const char *NeuronAI::getAction(const GameInstance::GameFrame &frame, bool isLeft)
 	{
-		this->myObjects->objects = isLeft ? frame.leftObjects : frame.rightObjects;
-		this->opObjects->objects = isLeft ? frame.rightObjects : frame.leftObjects;
+		this->_myObjects->objects = isLeft ? frame.leftObjects : frame.rightObjects;
+		this->_opObjects->objects = isLeft ? frame.rightObjects : frame.leftObjects;
 
 		// Weather
 		this->_neurons[WEATHER_OFFSET + 0]->setValue(1.f * frame.displayedWeather / SokuLib::WEATHER_AURORA);

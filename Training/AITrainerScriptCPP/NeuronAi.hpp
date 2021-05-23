@@ -15,8 +15,8 @@ namespace Trainer
 {
 	class NeuronAI : public BaseAI {
 	private:
-		ObjectsNeuron *myObjects;
-		ObjectsNeuron *opObjects;
+		ObjectsNeuron *_myObjects;
+		ObjectsNeuron *_opObjects;
 		std::vector<std::unique_ptr<Neuron>> _neurons;
 		unsigned _id;
 		int _generation;
@@ -35,8 +35,8 @@ namespace Trainer
 		void save(SokuLib::Character myChar, SokuLib::Character opChar) const;
 		void onGameStart(SokuLib::Character myChar, SokuLib::Character opChar, unsigned inputDelay);
 		void loadFile(SokuLib::Character myChar, SokuLib::Character opChar);
-		NeuronAI *mateOnce(const NeuronAI &other, unsigned id,SokuLib::Character myChar, SokuLib::Character opChar) const;
-		std::vector<NeuronAI *> mate(const NeuronAI &other, SokuLib::Character myCharId, SokuLib::Character opCharId, unsigned startId, unsigned nb) const;
+		NeuronAI *mateOnce(const NeuronAI &other, unsigned id,SokuLib::Character myChar, SokuLib::Character opChar, unsigned currentLatestGen) const;
+		std::vector<NeuronAI *> mate(const NeuronAI &other, SokuLib::Character myCharId, SokuLib::Character opCharId, unsigned startId, unsigned currentLatestGen, unsigned nb) const;
 		const char *getAction(const GameInstance::GameFrame &frame, bool isLeft) override;
 		std::string toString() const override;
 	};
