@@ -59,7 +59,7 @@
 
 namespace Trainer
 {
-	static const char *chrNames[] = {
+	const char *NeuronAI::chrNames[] = {
 		"Reimu",
 		"Marisa",
 		"Sakuya",
@@ -411,5 +411,15 @@ namespace Trainer
 	std::string NeuronAI::toString() const
 	{
 		return std::string("NAI ") + chrNames[this->_character] + " gen" + std::to_string(this->_generation) + "-" + std::to_string(this->_id);
+	}
+
+	unsigned int NeuronAI::getId() const
+	{
+		return this->_id;
+	}
+
+	int NeuronAI::getGeneration() const
+	{
+		return this->_generation;
 	}
 }

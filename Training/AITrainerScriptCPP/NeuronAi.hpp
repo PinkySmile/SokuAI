@@ -22,11 +22,11 @@ namespace Trainer
 		int _generation;
 		unsigned _inputDelay;
 
-		static const std::string _path;
-
 		void _createBaseNeurons();
 
 	public:
+		static const char *NeuronAI::chrNames[20];
+		static const std::string _path;
 		static int getLatestGen(SokuLib::Character myChar, SokuLib::Character opChar);
 
 		NeuronAI(unsigned char palette, unsigned index, int generation);
@@ -39,6 +39,8 @@ namespace Trainer
 		std::vector<NeuronAI *> mate(const NeuronAI &other, SokuLib::Character myCharId, SokuLib::Character opCharId, unsigned startId, unsigned currentLatestGen, unsigned nb) const;
 		const char *getAction(const GameInstance::GameFrame &frame, bool isLeft) override;
 		std::string toString() const override;
+		unsigned int getId() const;
+		int getGeneration() const;
 	};
 }
 

@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <ctime>
 #include <string>
+#include <fstream>
 #include "SwissTournamentManager.hpp"
 #include "NeuronAi.hpp"
 
@@ -48,6 +49,57 @@ void generateNextGeneration(const std::vector<PlayerEntry> &results, std::vector
 		}
 }
 
+void saveTournamentsResults(const std::vector<PlayerEntry> &results, unsigned popSize, unsigned currentLatestGen)
+{
+	std::ofstream stream{
+		NeuronAI::_path + NeuronAI::chrNames[SokuLib::CHARACTER_REMILIA] + " vs " + NeuronAI::chrNames[SokuLib::CHARACTER_REMILIA] + "/" +
+		std::to_string(currentLatestGen) + "/results.txt"
+	};
+
+	for (auto &result : results) {
+		auto ai = reinterpret_cast<NeuronAI *>(result.ai);
+
+		stream << ai->getId() << ',' << ai->getGeneration() << std::endl;
+	}
+}
+
+void loadGeneration(std::vector<std::unique_ptr<NeuronAI>> &ais, unsigned popSize, int latest)
+{
+	std::ifstream stream{
+		NeuronAI::_path + NeuronAI::chrNames[SokuLib::CHARACTER_REMILIA] + " vs " + NeuronAI::chrNames[SokuLib::CHARACTER_REMILIA] + "/" +
+		std::to_string(latest - 1) + "/results.txt"
+	};
+
+	ais.reserve(popSize + popSize / LOWERING_FACTOR);
+	for (int i = 0; i < popSize; i++)
+		ais.emplace_back(new NeuronAI(rand() % 72, i, latest));
+	if (latest <= 0) {
+		for (int i = 0; i < popSize / LOWERING_FACTOR; i++)
+			ais.emplace_back(new NeuronAI(rand() % 72, i + popSize, -1));
+	} else if (stream.fail()) {
+		printf("Tournament results for generation %i not found\n", latest - 1);
+		for (int i = 0; i < popSize / LOWERING_FACTOR; i++)
+			ais.emplace_back(new NeuronAI(rand() % 72, i, -1));
+	} else {
+		std::string id;
+		std::string gen;
+
+		printf("Loading tournament results for generation %i\n", latest - 1);
+		for (
+			int i = 0;
+			i < popSize / LOWERING_FACTOR &&
+			std::getline(stream, id, ',') &&
+			std::getline(stream, gen);
+			i++
+		)
+			ais.emplace_back(new NeuronAI(0, std::stoul(id), std::stoul(gen)));
+	}
+	for (auto &ai : ais) {
+		ai->createRequiredPath(SokuLib::CHARACTER_REMILIA, SokuLib::CHARACTER_REMILIA);
+		ai->init(SokuLib::CHARACTER_REMILIA, SokuLib::CHARACTER_REMILIA);
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	if (argc < 6) {
@@ -70,21 +122,7 @@ int main(int argc, char *argv[])
 
 	// first one is a bit special since we either create the AIs
 	printf("Loading generation %i\n", latest);
-
-	// TODO: Store the best of latest generation
-	ais.reserve(popSize + popSize / LOWERING_FACTOR);
-	for (int i = 0; i < popSize; i++)
-		ais.emplace_back(new NeuronAI(rand() % 72, i, latest));
-	if (latest > 0)
-		for (int i = 0; i < popSize / LOWERING_FACTOR; i++)
-			ais.emplace_back(new NeuronAI(rand() % 72, i, latest - 1));
-	else
-		for (int i = 0; i < popSize / LOWERING_FACTOR; i++)
-			ais.emplace_back(new NeuronAI(rand() % 72, i + popSize, -1));
-	for (auto &ai : ais) {
-		ai->createRequiredPath(SokuLib::CHARACTER_REMILIA, SokuLib::CHARACTER_REMILIA);
-		ai->init(SokuLib::CHARACTER_REMILIA, SokuLib::CHARACTER_REMILIA);
-	}
+	loadGeneration(ais, popSize, latest);
 	nb = ceil(log2(ais.size()));
 	while (true) {
 		std::vector<BaseAI *> baseAis;
@@ -100,6 +138,7 @@ int main(int argc, char *argv[])
 				return e1.score > e2.score;
 			return e1.wins > e2.wins;
 		});
+		saveTournamentsResults(results, popSize, latest);
 		generateNextGeneration(results, ais, popSize, latest);
 		latest++;
 	}
