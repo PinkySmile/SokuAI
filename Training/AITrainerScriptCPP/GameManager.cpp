@@ -64,7 +64,7 @@ namespace Trainer
 				leftInputs.push_back(this->leftAi->getInputs(state, true));
 				rightInputs.push_back(this->rightAi->getInputs(state, false));
 
-				this->_gameInstance.tick({leftInputs.front(), rightInputs.front()});
+				state = this->_gameInstance.tick({leftInputs.front(), rightInputs.front()});
 				leftInputs.pop_front();
 				rightInputs.pop_front();
 			}

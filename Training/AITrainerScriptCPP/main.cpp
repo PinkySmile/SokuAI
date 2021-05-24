@@ -13,6 +13,7 @@
 
 using namespace Trainer;
 
+#define TRAINING_CHARACTER CHARACTER_REMILIA
 #define MATING_FACTOR   10
 #define LOWERING_FACTOR 5
 
@@ -31,7 +32,7 @@ void generateNextGeneration(const std::vector<PlayerEntry> &results, std::vector
 
 	for (i = 0;;)
 		for (auto &parents : pairs) {
-			result.push_back(parents.first->mateOnce(*parents.second, i, SokuLib::CHARACTER_REMILIA, SokuLib::CHARACTER_REMILIA, currentLatestGen));
+			result.push_back(parents.first->mateOnce(*parents.second, i, SokuLib::TRAINING_CHARACTER, SokuLib::TRAINING_CHARACTER, currentLatestGen));
 			i++;
 			if (i == popSize) {
 				ais.erase(std::remove_if(ais.begin(), ais.end(), [&results, popSize](const std::unique_ptr<NeuronAI> &a){
@@ -52,7 +53,7 @@ void generateNextGeneration(const std::vector<PlayerEntry> &results, std::vector
 void saveTournamentsResults(const std::vector<PlayerEntry> &results, unsigned popSize, unsigned currentLatestGen)
 {
 	std::ofstream stream{
-		NeuronAI::_path + NeuronAI::chrNames[SokuLib::CHARACTER_REMILIA] + " vs " + NeuronAI::chrNames[SokuLib::CHARACTER_REMILIA] + "/" +
+		NeuronAI::_path + NeuronAI::chrNames[SokuLib::TRAINING_CHARACTER] + " vs " + NeuronAI::chrNames[SokuLib::TRAINING_CHARACTER] + "/" +
 		std::to_string(currentLatestGen) + "/results.txt"
 	};
 
@@ -66,7 +67,7 @@ void saveTournamentsResults(const std::vector<PlayerEntry> &results, unsigned po
 void loadGeneration(std::vector<std::unique_ptr<NeuronAI>> &ais, unsigned popSize, int latest)
 {
 	std::ifstream stream{
-		NeuronAI::_path + NeuronAI::chrNames[SokuLib::CHARACTER_REMILIA] + " vs " + NeuronAI::chrNames[SokuLib::CHARACTER_REMILIA] + "/" +
+		NeuronAI::_path + NeuronAI::chrNames[SokuLib::TRAINING_CHARACTER] + " vs " + NeuronAI::chrNames[SokuLib::TRAINING_CHARACTER] + "/" +
 		std::to_string(latest - 1) + "/results.txt"
 	};
 
@@ -95,8 +96,8 @@ void loadGeneration(std::vector<std::unique_ptr<NeuronAI>> &ais, unsigned popSiz
 			ais.emplace_back(new NeuronAI(0, std::stoul(id), std::stoul(gen)));
 	}
 	for (auto &ai : ais) {
-		ai->createRequiredPath(SokuLib::CHARACTER_REMILIA, SokuLib::CHARACTER_REMILIA);
-		ai->init(SokuLib::CHARACTER_REMILIA, SokuLib::CHARACTER_REMILIA);
+		ai->createRequiredPath(SokuLib::TRAINING_CHARACTER, SokuLib::TRAINING_CHARACTER);
+		ai->init(SokuLib::TRAINING_CHARACTER, SokuLib::TRAINING_CHARACTER);
 	}
 }
 
@@ -117,7 +118,7 @@ int main(int argc, char *argv[])
 	unsigned inputDelay = std::stoul(argv[5]);
 	const char *ini = argc == 7 ? argv[6] : nullptr;
 	SwissTournamentManager tournament(nb, port, client, inputDelay, 5 * 60 * 60, 1, ini);
-	auto latest = NeuronAI::getLatestGen(SokuLib::CHARACTER_REMILIA, SokuLib::CHARACTER_REMILIA);
+	auto latest = NeuronAI::getLatestGen(SokuLib::TRAINING_CHARACTER, SokuLib::TRAINING_CHARACTER);
 	std::vector<std::unique_ptr<NeuronAI>> ais;
 
 	// first one is a bit special since we either create the AIs

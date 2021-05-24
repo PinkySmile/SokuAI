@@ -89,7 +89,7 @@ namespace Trainer
 			{ true, false, false, false, false, false, FRONT, NEUTRAL }
 		}},
 		{"8a", {
-			{ true, false, false, false, false, false, NEUTRAL, NEUTRAL }
+			{ true, false, false, false, false, false, NEUTRAL, UP }
 		}},
 		{"66a", {
 			{ true,  false, false, false, false, false, FRONT,   NEUTRAL },

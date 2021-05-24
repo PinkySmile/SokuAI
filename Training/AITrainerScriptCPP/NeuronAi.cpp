@@ -79,7 +79,8 @@ namespace Trainer
 		"Cirno",
 		"Meiling",
 		"Utsuho",
-		"Suwako"
+		"Suwako",
+		"Random"
 	};
 
 	const std::string NeuronAI::_path = std::string(__argv[0]).substr(0, std::string(__argv[0]).find_last_of('\\')) + "\\generated\\";
@@ -281,8 +282,8 @@ namespace Trainer
 		this->_opObjects->objects = isLeft ? frame.rightObjects : frame.leftObjects;
 
 		// Weather
-		this->_neurons[WEATHER_OFFSET + 0]->setValue(1.f * frame.displayedWeather / SokuLib::WEATHER_AURORA);
-		this->_neurons[WEATHER_OFFSET + 1]->setValue(1.f * frame.activeWeather / SokuLib::WEATHER_AURORA);
+		this->_neurons[WEATHER_OFFSET + 0]->setValue(frame.displayedWeather <= 19 ? frame.displayedWeather / 19.f : -1);
+		this->_neurons[WEATHER_OFFSET + 1]->setValue(frame.activeWeather <= 19 ? frame.activeWeather / 19.f : -1);
 		this->_neurons[WEATHER_OFFSET + 2]->setValue(frame.weatherTimer / 999.f);
 
 		// God please forgive me for I have sinned
@@ -308,31 +309,25 @@ namespace Trainer
 		this->_neurons[STATE_OFFSET + 0x13 + 0x00]->setValue((isLeft ? frame.left : frame.right).healingCharm             / DIVISOR_HEALING_CHARM);
 		this->_neurons[STATE_OFFSET + 0x14 + 0x00]->setValue((isLeft ? frame.left : frame.right).swordOfRapture           / DIVISOR_SWORD_OF_RAPTURE);
 		this->_neurons[STATE_OFFSET + 0x15 + 0x00]->setValue((isLeft ? frame.left : frame.right).score                    / DIVISOR_SCORE);
-		this->_neurons[STATE_OFFSET + 0x16 + 0x00]->setValue((isLeft ? frame.left : frame.right).hand[0]                  / DIVISOR_HAND);
-		this->_neurons[STATE_OFFSET + 0x17 + 0x00]->setValue((isLeft ? frame.left : frame.right).hand[1]                  / DIVISOR_HAND);
-		this->_neurons[STATE_OFFSET + 0x18 + 0x00]->setValue((isLeft ? frame.left : frame.right).hand[2]                  / DIVISOR_HAND);
-		this->_neurons[STATE_OFFSET + 0x19 + 0x00]->setValue((isLeft ? frame.left : frame.right).hand[3]                  / DIVISOR_HAND);
-		this->_neurons[STATE_OFFSET + 0x1A + 0x00]->setValue((isLeft ? frame.left : frame.right).hand[4]                  / DIVISOR_HAND);
+		for (int i = 0; i < 5; i++) {
+			auto card = (isLeft ? frame.left : frame.right).hand[i];
+
+			this->_neurons[STATE_OFFSET + 0x16 + 0x00 + i]->setValue(card == 0xFF ? -1 : (card / DIVISOR_HAND));
+		}
 		this->_neurons[STATE_OFFSET + 0x1B + 0x00]->setValue((isLeft ? frame.left : frame.right).cardGauge                / DIVISOR_CARD_GAUGE);
-		this->_neurons[STATE_OFFSET + 0x1C + 0x00]->setValue((isLeft ? frame.left : frame.right).skills[0].level          / DIVISOR_SKILLS);
-		this->_neurons[STATE_OFFSET + 0x1D + 0x00]->setValue((isLeft ? frame.left : frame.right).skills[1].level          / DIVISOR_SKILLS);
-		this->_neurons[STATE_OFFSET + 0x1E + 0x00]->setValue((isLeft ? frame.left : frame.right).skills[2].level          / DIVISOR_SKILLS);
-		this->_neurons[STATE_OFFSET + 0x1F + 0x00]->setValue((isLeft ? frame.left : frame.right).skills[3].level          / DIVISOR_SKILLS);
-		this->_neurons[STATE_OFFSET + 0x20 + 0x00]->setValue((isLeft ? frame.left : frame.right).skills[4].level          / DIVISOR_SKILLS);
-		this->_neurons[STATE_OFFSET + 0x21 + 0x00]->setValue((isLeft ? frame.left : frame.right).skills[5].level          / DIVISOR_SKILLS);
-		this->_neurons[STATE_OFFSET + 0x22 + 0x00]->setValue((isLeft ? frame.left : frame.right).skills[6].level          / DIVISOR_SKILLS);
-		this->_neurons[STATE_OFFSET + 0x23 + 0x00]->setValue((isLeft ? frame.left : frame.right).skills[7].level          / DIVISOR_SKILLS);
-		this->_neurons[STATE_OFFSET + 0x24 + 0x00]->setValue((isLeft ? frame.left : frame.right).skills[8].level          / DIVISOR_SKILLS);
-		this->_neurons[STATE_OFFSET + 0x25 + 0x00]->setValue((isLeft ? frame.left : frame.right).skills[9].level          / DIVISOR_SKILLS);
-		this->_neurons[STATE_OFFSET + 0x26 + 0x00]->setValue((isLeft ? frame.left : frame.right).skills[10].level         / DIVISOR_SKILLS);
-		this->_neurons[STATE_OFFSET + 0x27 + 0x00]->setValue((isLeft ? frame.left : frame.right).skills[11].level         / DIVISOR_SKILLS);
-		this->_neurons[STATE_OFFSET + 0x28 + 0x00]->setValue((isLeft ? frame.left : frame.right).skills[12].level         / DIVISOR_SKILLS);
-		this->_neurons[STATE_OFFSET + 0x29 + 0x00]->setValue((isLeft ? frame.left : frame.right).skills[13].level         / DIVISOR_SKILLS);
-		this->_neurons[STATE_OFFSET + 0x2A + 0x00]->setValue((isLeft ? frame.left : frame.right).skills[14].level         / DIVISOR_SKILLS);
+		for (int i = 0; i < 15; i++) {
+			auto skill = (isLeft ? frame.left : frame.right).skills[i];
+
+			this->_neurons[STATE_OFFSET + 0x1C + 0x00 + i]->setValue(skill.notUsed ? -1 : (skill.level / DIVISOR_SKILLS));
+		}
 		this->_neurons[STATE_OFFSET + 0x2B + 0x00]->setValue((isLeft ? frame.left : frame.right).fanLevel                 / DIVISOR_FAN_LEVEL);
 		this->_neurons[STATE_OFFSET + 0x2C + 0x00]->setValue((isLeft ? frame.left : frame.right).dropInvulTimeLeft        / DIVISOR_DROP_INVUL_TIME_LEFT);
-		this->_neurons[STATE_OFFSET + 0x2D + 0x00]->setValue((isLeft ? frame.left : frame.right).superArmorTimeLeft       / DIVISOR_SUPER_ARMOR_TIME_LEFT);
-		this->_neurons[STATE_OFFSET + 0x2E + 0x00]->setValue((isLeft ? frame.left : frame.right).superArmorHp             / DIVISOR_SUPER_ARMOR_HP);
+
+		auto t = (isLeft ? frame.left : frame.right).superArmorTimeLeft;
+		auto h = (isLeft ? frame.left : frame.right).superArmorHp;
+
+		this->_neurons[STATE_OFFSET + 0x2D + 0x00]->setValue(t < 0 ? t : t / DIVISOR_SUPER_ARMOR_TIME_LEFT);
+		this->_neurons[STATE_OFFSET + 0x2E + 0x00]->setValue(h < 0 ? h : h / DIVISOR_SUPER_ARMOR_HP);
 		this->_neurons[STATE_OFFSET + 0x2F + 0x00]->setValue((isLeft ? frame.left : frame.right).milleniumVampireTimeLeft / DIVISOR_MILLENIUM_VAMPIRE_TIME_LEFT);
 		this->_neurons[STATE_OFFSET + 0x30 + 0x00]->setValue((isLeft ? frame.left : frame.right).philosoferStoneTimeLeft  / DIVISOR_PHILOSOFER_STONE_TIME_LEFT);
 		this->_neurons[STATE_OFFSET + 0x31 + 0x00]->setValue((isLeft ? frame.left : frame.right).sakuyasWorldTimeLeft     / DIVISOR_SAKUYAS_WORLD_TIME_LEFT);
@@ -342,64 +337,61 @@ namespace Trainer
 		this->_neurons[STATE_OFFSET + 0x35 + 0x00]->setValue((isLeft ? frame.left : frame.right).kanakoCooldown           / DIVISOR_KANAKO_COOLDOWN);
 		this->_neurons[STATE_OFFSET + 0x36 + 0x00]->setValue((isLeft ? frame.left : frame.right).suwakoCooldown           / DIVISOR_SUWAKO_COOLDOWN);
 
-		this->_neurons[STATE_OFFSET + 0x00 + 0x37]->setValue((isLeft ? frame.right : frame.left).direction                / DIVISOR_DIRECTION);
-		this->_neurons[STATE_OFFSET + 0x01 + 0x37]->setValue((isLeft ? frame.right : frame.left).opponentRelativePos.x    / DIVISOR_OPPONENT_RELATIVE_POS_X);
-		this->_neurons[STATE_OFFSET + 0x02 + 0x37]->setValue((isLeft ? frame.right : frame.left).opponentRelativePos.y    / DIVISOR_OPPONENT_RELATIVE_POS_Y);
-		this->_neurons[STATE_OFFSET + 0x03 + 0x37]->setValue((isLeft ? frame.right : frame.left).distToBackCorner         / DIVISOR_DIST_TO_LEFT_CORNER);
-		this->_neurons[STATE_OFFSET + 0x04 + 0x37]->setValue((isLeft ? frame.right : frame.left).distToFrontCorner        / DIVISOR_DIST_TO_RIGHT_CORNER);
-		this->_neurons[STATE_OFFSET + 0x05 + 0x37]->setValue((isLeft ? frame.right : frame.left).distToGround             / DIVISOR_DIST_TO_GROUND);
-		this->_neurons[STATE_OFFSET + 0x06 + 0x37]->setValue((isLeft ? frame.right : frame.left).action                   / DIVISOR_ACTION);
-		this->_neurons[STATE_OFFSET + 0x07 + 0x37]->setValue((isLeft ? frame.right : frame.left).actionBlockId            / DIVISOR_ACTION_BLOCK_ID);
-		this->_neurons[STATE_OFFSET + 0x08 + 0x37]->setValue((isLeft ? frame.right : frame.left).animationCounter         / DIVISOR_ANIMATION_COUNTER);
-		this->_neurons[STATE_OFFSET + 0x09 + 0x37]->setValue((isLeft ? frame.right : frame.left).animationSubFrame        / DIVISOR_ANIMATION_SUBFRAME);
-		this->_neurons[STATE_OFFSET + 0x0A + 0x37]->setValue((isLeft ? frame.right : frame.left).frameCount               / DIVISOR_FRAME_COUNT);
-		this->_neurons[STATE_OFFSET + 0x0B + 0x37]->setValue((isLeft ? frame.right : frame.left).comboDamage              / DIVISOR_COMBO_DAMAGE);
-		this->_neurons[STATE_OFFSET + 0x0C + 0x37]->setValue((isLeft ? frame.right : frame.left).comboLimit               / DIVISOR_COMBO_LIMIT);
-		this->_neurons[STATE_OFFSET + 0x0D + 0x37]->setValue((isLeft ? frame.right : frame.left).airBorne                 / DIVISOR_AIRBORNE);
-		this->_neurons[STATE_OFFSET + 0x0E + 0x37]->setValue((isLeft ? frame.right : frame.left).hp                       / DIVISOR_HP);
-		this->_neurons[STATE_OFFSET + 0x0F + 0x37]->setValue((isLeft ? frame.right : frame.left).airDashCount             / DIVISOR_AIR_DASH_COUNT);
-		this->_neurons[STATE_OFFSET + 0x10 + 0x37]->setValue((isLeft ? frame.right : frame.left).spirit                   / DIVISOR_SPIRIT);
-		this->_neurons[STATE_OFFSET + 0x11 + 0x37]->setValue((isLeft ? frame.right : frame.left).maxSpirit                / DIVISOR_MAX_SPIRIT);
-		this->_neurons[STATE_OFFSET + 0x12 + 0x37]->setValue((isLeft ? frame.right : frame.left).untech                   / DIVISOR_UNTECH);
-		this->_neurons[STATE_OFFSET + 0x13 + 0x37]->setValue((isLeft ? frame.right : frame.left).healingCharm             / DIVISOR_HEALING_CHARM);
-		this->_neurons[STATE_OFFSET + 0x14 + 0x37]->setValue((isLeft ? frame.right : frame.left).swordOfRapture           / DIVISOR_SWORD_OF_RAPTURE);
-		this->_neurons[STATE_OFFSET + 0x15 + 0x37]->setValue((isLeft ? frame.right : frame.left).score                    / DIVISOR_SCORE);
-		this->_neurons[STATE_OFFSET + 0x16 + 0x37]->setValue((isLeft ? frame.right : frame.left).hand[0]                  / DIVISOR_HAND);
-		this->_neurons[STATE_OFFSET + 0x17 + 0x37]->setValue((isLeft ? frame.right : frame.left).hand[1]                  / DIVISOR_HAND);
-		this->_neurons[STATE_OFFSET + 0x18 + 0x37]->setValue((isLeft ? frame.right : frame.left).hand[2]                  / DIVISOR_HAND);
-		this->_neurons[STATE_OFFSET + 0x19 + 0x37]->setValue((isLeft ? frame.right : frame.left).hand[3]                  / DIVISOR_HAND);
-		this->_neurons[STATE_OFFSET + 0x1A + 0x37]->setValue((isLeft ? frame.right : frame.left).hand[4]                  / DIVISOR_HAND);
-		this->_neurons[STATE_OFFSET + 0x1B + 0x37]->setValue((isLeft ? frame.right : frame.left).cardGauge                / DIVISOR_CARD_GAUGE);
-		this->_neurons[STATE_OFFSET + 0x1C + 0x37]->setValue((isLeft ? frame.right : frame.left).skills[0].level          / DIVISOR_SKILLS);
-		this->_neurons[STATE_OFFSET + 0x1D + 0x37]->setValue((isLeft ? frame.right : frame.left).skills[1].level          / DIVISOR_SKILLS);
-		this->_neurons[STATE_OFFSET + 0x1E + 0x37]->setValue((isLeft ? frame.right : frame.left).skills[2].level          / DIVISOR_SKILLS);
-		this->_neurons[STATE_OFFSET + 0x1F + 0x37]->setValue((isLeft ? frame.right : frame.left).skills[3].level          / DIVISOR_SKILLS);
-		this->_neurons[STATE_OFFSET + 0x20 + 0x37]->setValue((isLeft ? frame.right : frame.left).skills[4].level          / DIVISOR_SKILLS);
-		this->_neurons[STATE_OFFSET + 0x21 + 0x37]->setValue((isLeft ? frame.right : frame.left).skills[5].level          / DIVISOR_SKILLS);
-		this->_neurons[STATE_OFFSET + 0x22 + 0x37]->setValue((isLeft ? frame.right : frame.left).skills[6].level          / DIVISOR_SKILLS);
-		this->_neurons[STATE_OFFSET + 0x23 + 0x37]->setValue((isLeft ? frame.right : frame.left).skills[7].level          / DIVISOR_SKILLS);
-		this->_neurons[STATE_OFFSET + 0x24 + 0x37]->setValue((isLeft ? frame.right : frame.left).skills[8].level          / DIVISOR_SKILLS);
-		this->_neurons[STATE_OFFSET + 0x25 + 0x37]->setValue((isLeft ? frame.right : frame.left).skills[9].level          / DIVISOR_SKILLS);
-		this->_neurons[STATE_OFFSET + 0x26 + 0x37]->setValue((isLeft ? frame.right : frame.left).skills[10].level         / DIVISOR_SKILLS);
-		this->_neurons[STATE_OFFSET + 0x27 + 0x37]->setValue((isLeft ? frame.right : frame.left).skills[11].level         / DIVISOR_SKILLS);
-		this->_neurons[STATE_OFFSET + 0x28 + 0x37]->setValue((isLeft ? frame.right : frame.left).skills[12].level         / DIVISOR_SKILLS);
-		this->_neurons[STATE_OFFSET + 0x29 + 0x37]->setValue((isLeft ? frame.right : frame.left).skills[13].level         / DIVISOR_SKILLS);
-		this->_neurons[STATE_OFFSET + 0x2A + 0x37]->setValue((isLeft ? frame.right : frame.left).skills[14].level         / DIVISOR_SKILLS);
-		this->_neurons[STATE_OFFSET + 0x2B + 0x37]->setValue((isLeft ? frame.right : frame.left).fanLevel                 / DIVISOR_FAN_LEVEL);
-		this->_neurons[STATE_OFFSET + 0x2C + 0x37]->setValue((isLeft ? frame.right : frame.left).dropInvulTimeLeft        / DIVISOR_DROP_INVUL_TIME_LEFT);
-		this->_neurons[STATE_OFFSET + 0x2D + 0x37]->setValue((isLeft ? frame.right : frame.left).superArmorTimeLeft       / DIVISOR_SUPER_ARMOR_TIME_LEFT);
-		this->_neurons[STATE_OFFSET + 0x2E + 0x37]->setValue((isLeft ? frame.right : frame.left).superArmorHp             / DIVISOR_SUPER_ARMOR_HP);
-		this->_neurons[STATE_OFFSET + 0x2F + 0x37]->setValue((isLeft ? frame.right : frame.left).milleniumVampireTimeLeft / DIVISOR_MILLENIUM_VAMPIRE_TIME_LEFT);
-		this->_neurons[STATE_OFFSET + 0x30 + 0x37]->setValue((isLeft ? frame.right : frame.left).philosoferStoneTimeLeft  / DIVISOR_PHILOSOFER_STONE_TIME_LEFT);
-		this->_neurons[STATE_OFFSET + 0x31 + 0x37]->setValue((isLeft ? frame.right : frame.left).sakuyasWorldTimeLeft     / DIVISOR_SAKUYAS_WORLD_TIME_LEFT);
-		this->_neurons[STATE_OFFSET + 0x32 + 0x37]->setValue((isLeft ? frame.right : frame.left).privateSquareTimeLeft    / DIVISOR_PRIVATE_SQUARE_TIME_LEFT);
-		this->_neurons[STATE_OFFSET + 0x33 + 0x37]->setValue((isLeft ? frame.right : frame.left).orreriesTimeLeft         / DIVISOR_ORRERIES_TIME_LEFT);
-		this->_neurons[STATE_OFFSET + 0x34 + 0x37]->setValue((isLeft ? frame.right : frame.left).mppTimeLeft              / DIVISOR_MPP_TIME_LEFT);
-		this->_neurons[STATE_OFFSET + 0x35 + 0x37]->setValue((isLeft ? frame.right : frame.left).kanakoCooldown           / DIVISOR_KANAKO_COOLDOWN);
-		this->_neurons[STATE_OFFSET + 0x36 + 0x37]->setValue((isLeft ? frame.right : frame.left).suwakoCooldown           / DIVISOR_SUWAKO_COOLDOWN);
+
+
+		this->_neurons[STATE_OFFSET + 0x00 + 0x37]->setValue((!isLeft ? frame.left : frame.right).direction                / DIVISOR_DIRECTION);
+		this->_neurons[STATE_OFFSET + 0x01 + 0x37]->setValue((!isLeft ? frame.left : frame.right).opponentRelativePos.x    / DIVISOR_OPPONENT_RELATIVE_POS_X);
+		this->_neurons[STATE_OFFSET + 0x02 + 0x37]->setValue((!isLeft ? frame.left : frame.right).opponentRelativePos.y    / DIVISOR_OPPONENT_RELATIVE_POS_Y);
+		this->_neurons[STATE_OFFSET + 0x03 + 0x37]->setValue((!isLeft ? frame.left : frame.right).distToBackCorner         / DIVISOR_DIST_TO_LEFT_CORNER);
+		this->_neurons[STATE_OFFSET + 0x04 + 0x37]->setValue((!isLeft ? frame.left : frame.right).distToFrontCorner        / DIVISOR_DIST_TO_RIGHT_CORNER);
+		this->_neurons[STATE_OFFSET + 0x05 + 0x37]->setValue((!isLeft ? frame.left : frame.right).distToGround             / DIVISOR_DIST_TO_GROUND);
+		this->_neurons[STATE_OFFSET + 0x06 + 0x37]->setValue((!isLeft ? frame.left : frame.right).action                   / DIVISOR_ACTION);
+		this->_neurons[STATE_OFFSET + 0x07 + 0x37]->setValue((!isLeft ? frame.left : frame.right).actionBlockId            / DIVISOR_ACTION_BLOCK_ID);
+		this->_neurons[STATE_OFFSET + 0x08 + 0x37]->setValue((!isLeft ? frame.left : frame.right).animationCounter         / DIVISOR_ANIMATION_COUNTER);
+		this->_neurons[STATE_OFFSET + 0x09 + 0x37]->setValue((!isLeft ? frame.left : frame.right).animationSubFrame        / DIVISOR_ANIMATION_SUBFRAME);
+		this->_neurons[STATE_OFFSET + 0x0A + 0x37]->setValue((!isLeft ? frame.left : frame.right).frameCount               / DIVISOR_FRAME_COUNT);
+		this->_neurons[STATE_OFFSET + 0x0B + 0x37]->setValue((!isLeft ? frame.left : frame.right).comboDamage              / DIVISOR_COMBO_DAMAGE);
+		this->_neurons[STATE_OFFSET + 0x0C + 0x37]->setValue((!isLeft ? frame.left : frame.right).comboLimit               / DIVISOR_COMBO_LIMIT);
+		this->_neurons[STATE_OFFSET + 0x0D + 0x37]->setValue((!isLeft ? frame.left : frame.right).airBorne                 / DIVISOR_AIRBORNE);
+		this->_neurons[STATE_OFFSET + 0x0E + 0x37]->setValue((!isLeft ? frame.left : frame.right).hp                       / DIVISOR_HP);
+		this->_neurons[STATE_OFFSET + 0x0F + 0x37]->setValue((!isLeft ? frame.left : frame.right).airDashCount             / DIVISOR_AIR_DASH_COUNT);
+		this->_neurons[STATE_OFFSET + 0x10 + 0x37]->setValue((!isLeft ? frame.left : frame.right).spirit                   / DIVISOR_SPIRIT);
+		this->_neurons[STATE_OFFSET + 0x11 + 0x37]->setValue((!isLeft ? frame.left : frame.right).maxSpirit                / DIVISOR_MAX_SPIRIT);
+		this->_neurons[STATE_OFFSET + 0x12 + 0x37]->setValue((!isLeft ? frame.left : frame.right).untech                   / DIVISOR_UNTECH);
+		this->_neurons[STATE_OFFSET + 0x13 + 0x37]->setValue((!isLeft ? frame.left : frame.right).healingCharm             / DIVISOR_HEALING_CHARM);
+		this->_neurons[STATE_OFFSET + 0x14 + 0x37]->setValue((!isLeft ? frame.left : frame.right).swordOfRapture           / DIVISOR_SWORD_OF_RAPTURE);
+		this->_neurons[STATE_OFFSET + 0x15 + 0x37]->setValue((!isLeft ? frame.left : frame.right).score                    / DIVISOR_SCORE);
+		for (int i = 0; i < 5; i++) {
+			auto card = (!isLeft ? frame.left : frame.right).hand[i];
+
+			this->_neurons[STATE_OFFSET + 0x16 + 0x37 + i]->setValue(card == 0xFF ? -1 : (card / DIVISOR_HAND));
+		}
+		this->_neurons[STATE_OFFSET + 0x1B + 0x00]->setValue((isLeft ? frame.left : frame.right).cardGauge                / DIVISOR_CARD_GAUGE);
+		for (int i = 0; i < 15; i++) {
+			auto skill = (!isLeft ? frame.left : frame.right).skills[i];
+
+			this->_neurons[STATE_OFFSET + 0x1C + 0x37 + i]->setValue(skill.notUsed ? -1 : (skill.level / DIVISOR_SKILLS));
+		}
+		this->_neurons[STATE_OFFSET + 0x2B + 0x37]->setValue((!isLeft ? frame.left : frame.right).fanLevel                 / DIVISOR_FAN_LEVEL);
+		this->_neurons[STATE_OFFSET + 0x2C + 0x37]->setValue((!isLeft ? frame.left : frame.right).dropInvulTimeLeft        / DIVISOR_DROP_INVUL_TIME_LEFT);
+
+		t = (!isLeft ? frame.left : frame.right).superArmorTimeLeft;
+		h = (!isLeft ? frame.left : frame.right).superArmorHp;
+
+		this->_neurons[STATE_OFFSET + 0x2D + 0x37]->setValue(t < 0 ? t : t / DIVISOR_SUPER_ARMOR_TIME_LEFT);
+		this->_neurons[STATE_OFFSET + 0x2E + 0x37]->setValue(h < 0 ? h : h / DIVISOR_SUPER_ARMOR_HP);
+		this->_neurons[STATE_OFFSET + 0x2F + 0x37]->setValue((!isLeft ? frame.left : frame.right).milleniumVampireTimeLeft / DIVISOR_MILLENIUM_VAMPIRE_TIME_LEFT);
+		this->_neurons[STATE_OFFSET + 0x30 + 0x37]->setValue((!isLeft ? frame.left : frame.right).philosoferStoneTimeLeft  / DIVISOR_PHILOSOFER_STONE_TIME_LEFT);
+		this->_neurons[STATE_OFFSET + 0x31 + 0x37]->setValue((!isLeft ? frame.left : frame.right).sakuyasWorldTimeLeft     / DIVISOR_SAKUYAS_WORLD_TIME_LEFT);
+		this->_neurons[STATE_OFFSET + 0x32 + 0x37]->setValue((!isLeft ? frame.left : frame.right).privateSquareTimeLeft    / DIVISOR_PRIVATE_SQUARE_TIME_LEFT);
+		this->_neurons[STATE_OFFSET + 0x33 + 0x37]->setValue((!isLeft ? frame.left : frame.right).orreriesTimeLeft         / DIVISOR_ORRERIES_TIME_LEFT);
+		this->_neurons[STATE_OFFSET + 0x34 + 0x37]->setValue((!isLeft ? frame.left : frame.right).mppTimeLeft              / DIVISOR_MPP_TIME_LEFT);
+		this->_neurons[STATE_OFFSET + 0x35 + 0x37]->setValue((!isLeft ? frame.left : frame.right).kanakoCooldown           / DIVISOR_KANAKO_COOLDOWN);
+		this->_neurons[STATE_OFFSET + 0x36 + 0x37]->setValue((!isLeft ? frame.left : frame.right).suwakoCooldown           / DIVISOR_SUWAKO_COOLDOWN);
 
 		auto value = this->_neurons[INPUT_NEURONS_COUNT]->getValue();
 		int result = round((value + 1) * BaseAI::actions.size() / 2.f - 0.5f);
+
 		try {
 			return BaseAI::actions.at(min(BaseAI::actions.size() - 1, max(0, result)));
 		} catch (std::exception &e) {
