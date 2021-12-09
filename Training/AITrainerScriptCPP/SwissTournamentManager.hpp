@@ -35,12 +35,16 @@ namespace Trainer
 		unsigned _frameTimeout;
 		unsigned _inputDelay;
 		unsigned _playing;
+		unsigned _generation;
+		unsigned _round;
 
 		static WinnerSide _getMatchWinner(const std::vector<GameManager::GameResult> &results);
 		static void _updateMatchAis(Match &match, WinnerSide winner, int side);
 
 	public:
 		GameThread(
+			unsigned generation,
+			unsigned round,
 			bool &mutex,
 			std::vector<Match> &matches,
 			GameManager &game,
@@ -94,7 +98,7 @@ namespace Trainer
 		std::vector<std::unique_ptr<GameManager>> _gameManagers;
 
 		void _makeMatches(std::vector<PlayerEntry> &ais, std::vector<Match> &matches);
-		void _playMatches(std::vector<Match> &matches);
+		void _playMatches(unsigned generation, unsigned round, std::vector<Match> &matches);
 
 	public:
 		SwissTournamentManager(
@@ -107,7 +111,7 @@ namespace Trainer
 			const char *iniPath = nullptr
 		);
 
-		std::vector<PlayerEntry> playTournament(const std::vector<BaseAI *> &ais, unsigned nbRounds);
+		std::vector<PlayerEntry> playTournament(unsigned generation, const std::vector<BaseAI *> &ais, unsigned nbRounds);
 	};
 }
 

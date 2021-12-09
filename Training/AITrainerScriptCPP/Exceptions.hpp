@@ -12,7 +12,7 @@
 
 namespace Trainer
 {
-	class Exception : std::exception {
+	class Exception : public std::exception {
 	private:
 		std::string _msg;
 

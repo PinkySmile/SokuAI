@@ -183,16 +183,18 @@ class GameInstance:
 
     def start_game(self, params):
         packet = struct.pack(
-            '<BBBI20sBI20sB',
+            '<BBBI20sB32sI20sB32s',
             OPCODE_START_GAME,
             params["stage"],
             params["music"],
             params["left"]["character"],
             bytes(params["left"]["deck"]),
             params["left"]["palette"],
+            bytes([82, 97, 110, 100, 111, 109, 65, 73, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
             params["right"]["character"],
             bytes(params["right"]["deck"]),
-            params["right"]["palette"]
+            params["right"]["palette"],
+            bytes([82, 97, 110, 100, 111, 109, 65, 73, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
         )
         self.socket.send(packet)
         if self.socket.recv(1)[0] == OPCODE_ERROR:

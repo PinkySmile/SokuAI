@@ -16,7 +16,7 @@
 #define HAND_INDEX 22
 #define SKILLS_INDEX 24
 #define NEW_NEURON_CHANCE_NUM 1
-#define NEW_NEURON_CHANCE_DEN 100
+#define NEW_NEURON_CHANCE_DEN 10
 
 #define DIVISOR_DIRECTION                   1.f
 #define DIVISOR_OPPONENT_RELATIVE_POS_X     1240.f
@@ -173,36 +173,12 @@ namespace Trainer
 
 	void NeuronAI::loadFile(SokuLib::Character myChar, SokuLib::Character opChar)
 	{
-		std::string file =
+		this->loadFile(
+			myChar,
 			NeuronAI::_path + chrNames[myChar] + " vs " + chrNames[opChar] + "/" +
 			std::to_string(this->_generation) + "/" +
-			std::to_string(this->_id) + ".neur";
-		std::ifstream stream{file};
-		std::string line;
-
-		this->_createBaseNeurons();
-		printf("Loading %s\n", file.c_str());
-		std::getline(stream, line);
-		this->_palette = std::stoul(line);
-		std::getline(stream, line);
-		this->_neurons[OBJECTS_OFFSET]->loadFromLine(line);
-		std::getline(stream, line);
-		this->_neurons[OBJECTS_OFFSET + 1]->loadFromLine(line);
-		while (std::getline(stream, line))
-			if (!line.empty()) {
-				auto neuron = new Neuron(this->_neurons.size());
-
-				neuron->loadFromLine(line);
-				this->_neurons.emplace_back(neuron);
-			}
-		for (auto &neuron : this->_neurons)
-			neuron->resolveLinks(this->_neurons);
-		std::sort(this->_neurons.begin(), this->_neurons.end(), [](const std::unique_ptr<Neuron> &n1, const std::unique_ptr<Neuron> &n2){
-			return n1->getId() < n2->getId();
-		});
-		for (int i = 0; i < this->_neurons.size(); i++)
-			if (i != this->_neurons[i]->getId())
-				throw Exception("Invalid file. Neuron #" + std::to_string(i) + " have id " + std::to_string(this->_neurons[i]->getId()));
+			std::to_string(this->_id) + ".neur"
+		);
 	}
 
 	NeuronAI *NeuronAI::mateOnce(const NeuronAI &other, unsigned int id, SokuLib::Character myChar, SokuLib::Character opChar, unsigned currentLatestGen) const
@@ -413,5 +389,48 @@ namespace Trainer
 	int NeuronAI::getGeneration() const
 	{
 		return this->_generation;
+	}
+
+	void NeuronAI::loadFile(SokuLib::Character myChar, const std::string &path)
+	{
+		std::ifstream stream{path};
+		std::string line;
+
+		this->_character = myChar;
+		this->_createBaseNeurons();
+		printf("Loading %s\n", path.c_str());
+		std::getline(stream, line);
+		this->_palette = std::stoul(line);
+		std::getline(stream, line);
+		this->_neurons[OBJECTS_OFFSET]->loadFromLine(line);
+		std::getline(stream, line);
+		this->_neurons[OBJECTS_OFFSET + 1]->loadFromLine(line);
+		while (std::getline(stream, line))
+			if (!line.empty()) {
+				auto neuron = new Neuron(this->_neurons.size());
+
+				neuron->loadFromLine(line);
+				this->_neurons.emplace_back(neuron);
+			}
+		for (auto &neuron : this->_neurons)
+			neuron->resolveLinks(this->_neurons);
+		std::sort(this->_neurons.begin(), this->_neurons.end(), [](const std::unique_ptr<Neuron> &n1, const std::unique_ptr<Neuron> &n2){
+			return n1->getId() < n2->getId();
+		});
+		for (int i = 0; i < this->_neurons.size(); i++)
+			if (i != this->_neurons[i]->getId())
+				throw Exception("Invalid file. Neuron #" + std::to_string(i) + " have id " + std::to_string(this->_neurons[i]->getId()));
+	}
+
+	GameInstance::PlayerParams NeuronAI::getParams() const
+	{
+		GameInstance::PlayerParams params{
+			this->_character,
+			this->_palette
+		};
+
+		buildDeck(this->_character, params.deck);
+		strcpy_s(params.name, (std::string("NAI ") + chrNames[this->_character] + " gen" + std::to_string(this->_generation) + "-" + std::to_string(this->_id)).c_str());
+		return params;
 	}
 }

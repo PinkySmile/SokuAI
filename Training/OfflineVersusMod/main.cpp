@@ -287,10 +287,6 @@ static bool verifyStartData(const Trainer::StartGamePacket &packet)
 		return sendError(Trainer::ERROR_INVALID_LEFT_CHARACTER), false;
 	if (packet.rightCharacter >= SokuLib::CHARACTER_RANDOM)
 		return sendError(Trainer::ERROR_INVALID_RIGHT_CHARACTER), false;
-	if (packet.leftPalette > 7)
-		return sendError(Trainer::ERROR_INVALID_LEFT_PALETTE), false;
-	if (packet.rightPalette > 7)
-		return sendError(Trainer::ERROR_INVALID_RIGHT_PALETTE), false;
 	if (!isDeckValid(packet.leftCharacter, packet.leftDeck))
 		return sendError(Trainer::ERROR_INVALID_LEFT_DECK), false;
 	if (!isDeckValid(packet.rightCharacter, packet.rightDeck))

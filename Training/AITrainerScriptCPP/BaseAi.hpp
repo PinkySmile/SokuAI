@@ -43,7 +43,8 @@ namespace Trainer
 				{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 200, 201, 202, 203, 204, 205, 206, 207, 208, 210, 213 },
 				{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 211 },
 				{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 200, 201, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214 },
-				{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 212 }
+				{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 212 },
+				{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111 }
 			};
 
 			for (int i = 0; i < 20;) {
@@ -63,14 +64,15 @@ namespace Trainer
 		static const std::vector<const char *> actions;
 
 		BaseAI(SokuLib::Character character, unsigned char palette);
+		virtual ~BaseAI() = default;
 		virtual std::string toString() const { return "BaseAI"; }
 		virtual void onWin(unsigned char myScore, unsigned char opponentScore) {}
 		virtual void onLose(unsigned char myScore, unsigned char opponentScore) {}
 		virtual void onTimeout(unsigned char myScore, unsigned char opponentScore) {}
 		virtual void onGameStart(SokuLib::Character myChr, SokuLib::Character opponentChr, unsigned int inputDelay) {}
 		virtual const char *getAction(const GameInstance::GameFrame &frame, bool isLeft);
-		Input getInputs(const GameInstance::GameFrame &frame, bool isLeft);
-		GameInstance::PlayerParams getParams() const
+		virtual Input getInputs(const GameInstance::GameFrame &frame, bool isLeft);
+		virtual GameInstance::PlayerParams getParams() const
 		{
 			GameInstance::PlayerParams params{
 				this->_character,
@@ -78,6 +80,7 @@ namespace Trainer
 			};
 
 			buildDeck(this->_character, params.deck);
+			strcpy_s(params.name, "Random AI");
 			return params;
 		}
 	};

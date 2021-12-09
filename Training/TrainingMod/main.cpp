@@ -9,8 +9,11 @@
 #include "Exceptions.hpp"
 
 #define CHECK_PACKET_SIZE(requested_type, size) if (size != sizeof(requested_type)) return sendError(Trainer::ERROR_INVALID_PACKET)
+
+#ifndef _DEBUG
 #define printf(...)
 #define puts(s)
+#endif
 
 static int (SokuLib::Battle::*s_origCBattle_OnRenderAddr)();
 static int (SokuLib::Select::*s_origCSelect_OnRenderAddr)();
@@ -154,10 +157,8 @@ bool isFrame = false;
 
 void __fastcall KeymapManagerSetInputs(SokuLib::KeymapManager *This)
 {
-	puts("Input");
 	(This->*s_origKeymapManager_SetInputs)();
 	if (SokuLib::sceneId != SokuLib::newSceneId) {
-		puts("Diff");
 		return;
 	}
 	if (begin && SokuLib::sceneId == SokuLib::SCENE_TITLE) {
@@ -186,7 +187,6 @@ void __fastcall KeymapManagerSetInputs(SokuLib::KeymapManager *This)
 		updateInput(*lastInput, *input);
 		memcpy(&This->input, lastInput, sizeof(*lastInput));
 	}
-	puts("End");
 	//static bool lasts = false;
 	//if (SokuLib::sceneId == SokuLib::SCENE_SELECTCL || SokuLib::sceneId == SokuLib::SCENE_SELECTSV) {
 	//	memset(&This->input, 0, sizeof(This->input));
@@ -225,35 +225,37 @@ static void sendOpcode(Trainer::Opcode code)
 
 int __fastcall fakeLoad(unsigned *puParm1, char *pcParm2, int **param_3, unsigned *param_4)
 {
+	printf("%p %s %p %p\n", puParm1, pcParm2, param_3, param_4);
 	return og_loadTexture(puParm1, "empty.png", param_3, param_4);
 }
 
 static void swapDisplay(bool enabled)
 {
-	*(char *)0x89ffbd = !enabled;
+	//*(char *)0x89ffbd = !enabled;
 	if (!enabled == !displayed)
 		return;
 
-	DWORD old;
+	DWORD oldR;
+	DWORD oldT;
 
 	displayed = enabled;
-	//::VirtualProtect((PVOID)RDATA_SECTION_OFFSET, RDATA_SECTION_SIZE, PAGE_EXECUTE_WRITECOPY, &old);
-	VirtualProtect((PVOID)TEXT_SECTION_OFFSET, TEXT_SECTION_SIZE, PAGE_EXECUTE_WRITECOPY, &old);
+	VirtualProtect((PVOID)RDATA_SECTION_OFFSET, RDATA_SECTION_SIZE, PAGE_EXECUTE_WRITECOPY, &oldR);
+	VirtualProtect((PVOID)TEXT_SECTION_OFFSET, TEXT_SECTION_SIZE, PAGE_EXECUTE_WRITECOPY, &oldT);
 	if (!displayed) {
-		og_loadTexture = reinterpret_cast<int (__fastcall *)(unsigned *, char *, int **, unsigned *)>(SokuLib::TamperNearJmpOpr(0x40505c, fakeLoad));
-	//	s_origCTitle_OnRenderAddr = SokuLib::TamperDword(&SokuLib::VTable_Title.onRender, dummyFunction);
-	//	s_origCBattle_OnRenderAddr = SokuLib::TamperDword(&SokuLib::VTable_Battle.onRender, dummyFunction);
-	//	s_origCSelect_OnRenderAddr = SokuLib::TamperDword(&SokuLib::VTable_Select.onRender, dummyFunction);
-	//	s_origCLoading_OnRenderAddr = SokuLib::TamperDword(&SokuLib::VTable_Loading.onRender, dummyFunction);
+		//og_loadTexture = reinterpret_cast<int (__fastcall *)(unsigned *, char *, int **, unsigned *)>(SokuLib::TamperNearJmpOpr(0x40505c, fakeLoad));
+		s_origCTitle_OnRenderAddr = SokuLib::TamperDword(&SokuLib::VTable_Title.onRender, dummyFunction);
+		s_origCBattle_OnRenderAddr = SokuLib::TamperDword(&SokuLib::VTable_Battle.onRender, dummyFunction);
+		s_origCSelect_OnRenderAddr = SokuLib::TamperDword(&SokuLib::VTable_Select.onRender, dummyFunction);
+		s_origCLoading_OnRenderAddr = SokuLib::TamperDword(&SokuLib::VTable_Loading.onRender, dummyFunction);
 	} else {
-		SokuLib::TamperNearJmpOpr(0x40505c, og_loadTexture);
-	//	SokuLib::TamperDword(&SokuLib::VTable_Title.onRender, s_origCTitle_OnRenderAddr);
-	//	SokuLib::TamperDword(&SokuLib::VTable_Battle.onRender, s_origCBattle_OnRenderAddr);
-	//	SokuLib::TamperDword(&SokuLib::VTable_Select.onRender, s_origCSelect_OnRenderAddr);
-	//	SokuLib::TamperDword(&SokuLib::VTable_Loading.onRender, s_origCLoading_OnRenderAddr);
+		//SokuLib::TamperNearJmpOpr(0x40505c, og_loadTexture);
+		SokuLib::TamperDword(&SokuLib::VTable_Title.onRender, s_origCTitle_OnRenderAddr);
+		SokuLib::TamperDword(&SokuLib::VTable_Battle.onRender, s_origCBattle_OnRenderAddr);
+		SokuLib::TamperDword(&SokuLib::VTable_Select.onRender, s_origCSelect_OnRenderAddr);
+		SokuLib::TamperDword(&SokuLib::VTable_Loading.onRender, s_origCLoading_OnRenderAddr);
 	}
-	VirtualProtect((PVOID)TEXT_SECTION_OFFSET, TEXT_SECTION_SIZE, old, &old);
-	//::VirtualProtect((PVOID)RDATA_SECTION_OFFSET, RDATA_SECTION_SIZE, old, &old);
+	VirtualProtect((PVOID)TEXT_SECTION_OFFSET, TEXT_SECTION_SIZE, oldT, &oldT);
+	VirtualProtect((PVOID)RDATA_SECTION_OFFSET, RDATA_SECTION_SIZE, oldR, &oldR);
 }
 
 static void startGame(const Trainer::StartGamePacket &startData)
@@ -276,10 +278,17 @@ static void startGame(const Trainer::StartGamePacket &startData)
 	memset(&lastInputs.first, 0, sizeof(lastInputs.first));
 	memset(&lastInputs.second, 0, sizeof(lastInputs.second));
 
-	SokuLib::profile1.name = "SokuAI";
+	size_t left;
+	size_t right;
+
+	for (left  = 0; left < 32  && startData.leftPlayerName[left];   left++);
+	for (right = 0; right < 32 && startData.rightPlayerName[right]; right++);
+
+	SokuLib::profile1.name = {startData.leftPlayerName, startData.leftPlayerName + left};
 	SokuLib::profile1.file = "SokuAI.pf";
-	SokuLib::profile2.name = "SokuAI";
+	SokuLib::profile2.name = {startData.rightPlayerName, startData.rightPlayerName + right};
 	SokuLib::profile2.file = "SokuAI.pf";
+	printf("%s is fighting against %s\n", SokuLib::profile1.name.operator char *(), SokuLib::profile2.name.operator char *());
 
 	SokuLib::leftPlayerInfo.character = startData.leftCharacter;
 	SokuLib::rightPlayerInfo.character = startData.rightCharacter;
@@ -461,7 +470,7 @@ int __fastcall CLogo_OnProcess(SokuLib::Logo *This) {
 
 	if (ret == SokuLib::SCENE_TITLE) {
 		*(int **)0x008a0008 = nullptr;
-		*(char *)0x89ffbd = true;
+		//*(char *)0x89ffbd = true;
 		if (__argc <= 1) {
 			MessageBoxA(SokuLib::window, "No port provided. Please provide a port in the command line.", "Port not given", MB_ICONERROR);
 			return -1;
@@ -556,7 +565,6 @@ int __fastcall CLogo_OnProcess(SokuLib::Logo *This) {
 }
 
 int __fastcall CSelect_OnProcess(SokuLib::Select *This) {
-	puts("CSelect_OnProcess");
 	int ret = (This->*s_origCSelect_OnProcess)();
 
 	if (stop)
@@ -571,12 +579,10 @@ int __fastcall CSelect_OnProcess(SokuLib::Select *This) {
 			SokuLib::rightPlayerInfo.effectiveDeck[i] = decks[20 + i];
 	}
 	startRequested &= ret == SokuLib::SCENE_SELECT;
-	printf("Return %i\n", ret);
 	return ret;
 }
 
 int __fastcall CBattle_OnProcess(SokuLib::Battle *This) {
-	puts("CBattle_OnProcess");
 	auto &battle = SokuLib::getBattleMgr();
 	Trainer::GameEndedPacket endPacket;
 
@@ -590,11 +596,9 @@ int __fastcall CBattle_OnProcess(SokuLib::Battle *This) {
 	}
 	counter += tps / 60.f;
 	while (counter >= 1) {
-		puts("Game frame");
 		isFrame = true;
 		int ret = (This->*s_origCBattle_OnProcess)();
 		isFrame = false;
-		puts("After frame");
 		if (!gameFinished) {
 			size_t allocSize = sizeof(Trainer::GameFramePacket) + (battle.leftCharacterManager.objects.list.size + battle.rightCharacterManager.objects.list.size) * sizeof(Trainer::Object);
 			char *buffer = new char[allocSize];
@@ -629,24 +633,24 @@ int __fastcall CBattle_OnProcess(SokuLib::Battle *This) {
 			endPacket.leftScore = battle.leftCharacterManager.score;
 			endPacket.rightScore = battle.rightCharacterManager.score;
 			send(sock, reinterpret_cast<const char *>(&endPacket), sizeof(endPacket), 0);
-			puts("Return title");
 			return SokuLib::SCENE_TITLE;
 		}
 		if (stop)
 			return -1;
 		counter--;
 	}
-	puts("Return battle");
 	return SokuLib::SCENE_BATTLE;
 }
 
 // 設定ロード
 void LoadSettings(LPCSTR profilePath) {
 	// 自動シャットダウン
-	//FILE *_;
-	//AllocConsole();
-	//freopen_s(&_, "CONOUT$", "w", stdout);
-	//freopen_s(&_, "CONOUT$", "w", stderr);
+#ifdef _DEBUG
+	FILE *_;
+	AllocConsole();
+	freopen_s(&_, "CONOUT$", "w", stdout);
+	freopen_s(&_, "CONOUT$", "w", stderr);
+#endif
 }
 
 extern "C" __declspec(dllexport) bool CheckVersion(const BYTE hash[16]) {
@@ -672,12 +676,17 @@ extern "C" __declspec(dllexport) bool Initialize(HMODULE hMyModule, HMODULE hPar
 	SokuLib::TamperDword(&SokuLib::VTable_Logo.onRender, dummyFunction);
 	::VirtualProtect((PVOID)RDATA_SECTION_OFFSET, RDATA_SECTION_SIZE, old, &old);
 
+#ifndef _DEBUG
 	swapDisplay(false);
+#endif
 	VirtualProtect((PVOID)TEXT_SECTION_OFFSET, TEXT_SECTION_SIZE, PAGE_EXECUTE_WRITECOPY, &old);
+#ifndef _DEBUG
+	og_loadTexture = reinterpret_cast<int (__fastcall *)(unsigned *, char *, int **, unsigned *)>(SokuLib::TamperNearJmpOpr(0x40505c, fakeLoad));
+#endif
 	int newOffset = (int)KeymapManagerSetInputs - PAYLOAD_NEXT_INSTR_GET_INPUTS;
 	s_origKeymapManager_SetInputs = SokuLib::union_cast<void (SokuLib::KeymapManager::*)()>(*(int *)PAYLOAD_ADDRESS_GET_INPUTS + PAYLOAD_NEXT_INSTR_GET_INPUTS);
 	*(int *)PAYLOAD_ADDRESS_GET_INPUTS = newOffset;
-	*(int *)0x47d7a0 = 0xC3;
+	//*(int *)0x47d7a0 = 0xC3;
 	VirtualProtect((PVOID)TEXT_SECTION_OFFSET, TEXT_SECTION_SIZE, old, &old);
 	::FlushInstructionCache(GetCurrentProcess(), nullptr, 0);
 	return true;

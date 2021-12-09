@@ -258,9 +258,13 @@ namespace Trainer
 		packet.leftCharacter = params.left.character;
 		memcpy(packet.leftDeck, params.left.deck, sizeof(packet.leftDeck));
 		packet.leftPalette = params.left.palette;
+		strcpy_s(packet.leftPlayerName, params.left.name);
+
 		packet.rightCharacter = params.right.character;
 		memcpy(packet.rightDeck, params.right.deck, sizeof(packet.leftDeck));
 		packet.rightPalette = params.right.palette;
+		strcpy_s(packet.rightPlayerName, params.right.name);
+
 		packet.musicId = params.music;
 		packet.stageId = params.stage;
 		send(this->_socket, reinterpret_cast<char *>(&packet), sizeof(packet), 0);

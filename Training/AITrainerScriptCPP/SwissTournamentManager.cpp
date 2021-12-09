@@ -3,16 +3,18 @@
 //
 
 #include <numeric>
+#include <iostream>
 #include "SwissTournamentManager.hpp"
 #include "Exceptions.hpp"
 
-#define GAME_TPS 60000
 #ifdef _DEBUG
 #define DISPLAY_PARAM true
 #define SOUND_PARAM 10, 10
+#define GAME_TPS 60
 #else
 #define DISPLAY_PARAM false
 #define SOUND_PARAM 0, 0
+#define GAME_TPS 60000
 #endif
 
 namespace Trainer
@@ -63,6 +65,8 @@ namespace Trainer
 	}
 
 	GameThread::GameThread(
+		unsigned generation,
+		unsigned round,
 		bool &mutex,
 		std::vector<Match> &matches,
 		GameManager &game,
@@ -77,7 +81,9 @@ namespace Trainer
 		_stageInfo(stageInfo),
 		_nb(nb),
 		_frameTimeout(frameTimeout),
-		_inputDelay(inputDelay)
+		_inputDelay(inputDelay),
+		_generation(generation),
+		_round(round)
 	{
 	}
 
@@ -108,7 +114,7 @@ namespace Trainer
 
 			this->_game.leftAi  = (side ? match.ai1 : match.ai2).ai;
 			this->_game.rightAi = (side ? match.ai2 : match.ai1).ai;
-			printf("[%i] Playing match %s vs %s\n", this->_playing, this->_game.leftAi->toString().c_str(), this->_game.rightAi->toString().c_str());
+			printf("[%u-%u][%i] Playing match %s vs %s\n", this->_generation, this->_round, this->_playing, this->_game.leftAi->toString().c_str(), this->_game.rightAi->toString().c_str());
 			try {
 				this->_updateMatchAis(match, this->_getMatchWinner(
 					this->_game.run(
@@ -128,6 +134,12 @@ namespace Trainer
 				puts("Match was aborted");
 				this->_updateMatchAis(match, static_cast<WinnerSide>(-1), -1);
 			}
+#ifndef _DEBUG
+			catch (std::exception &e) {
+				std::cerr << e.what() << std::endl;
+				throw;
+			}
+#endif
 		}
 	}
 
@@ -224,14 +236,14 @@ namespace Trainer
 		}
 	}
 
-	void SwissTournamentManager::_playMatches(std::vector<Match> &matches)
+	void SwissTournamentManager::_playMatches(unsigned generation, unsigned round, std::vector<Match> &matches)
 	{
 		std::vector<GameThread> threads;
 		bool mutex = false;
 
 		threads.reserve(this->_gameManagers.size());
 		for (auto &game : this->_gameManagers) {
-			threads.emplace_back(mutex, matches, *game, std::pair<unsigned char, unsigned char>{0, 0}, this->_firstTo * 2 - 1, this->_timeout, this->_inputDelay);
+			threads.emplace_back(generation, round, mutex, matches, *game, std::pair<unsigned char, unsigned char>{0, 0}, this->_firstTo * 2 - 1, this->_timeout, this->_inputDelay);
 			threads.back().start();
 		}
 		for (auto &thread : threads)
@@ -264,7 +276,7 @@ namespace Trainer
 			thread.join();
 	}
 
-	std::vector<PlayerEntry> SwissTournamentManager::playTournament(const std::vector<BaseAI *> &ais, unsigned int nbRounds)
+	std::vector<PlayerEntry> SwissTournamentManager::playTournament(unsigned generation, const std::vector<BaseAI *> &ais, unsigned int nbRounds)
 	{
 		std::vector<PlayerEntry> allEntries;
 
@@ -274,12 +286,12 @@ namespace Trainer
 		// AI, win score, score, sides (True is left)
 		puts("Starting tournament...");
 		printf("There are %u players and %u rounds\n", allEntries.size(), nbRounds);
-		for (int i = 0; i < nbRounds; i++) {
+		for (unsigned i = 0; i < nbRounds; i++) {
 			std::vector<Match> matches;
 
 			printf("Round %i start !\n", i);
 			this->_makeMatches(allEntries, matches);
-			this->_playMatches(matches);
+			this->_playMatches(generation, i, matches);
 		}
 		return allEntries;
 	}

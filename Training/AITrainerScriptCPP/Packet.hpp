@@ -87,9 +87,11 @@ namespace Trainer
 		SokuLib::Character leftCharacter;
 		unsigned char leftDeck[20];
 		unsigned char leftPalette;
+		char leftPlayerName[32];
 		SokuLib::Character rightCharacter;
 		unsigned char rightDeck[20];
 		unsigned char rightPalette;
+		char rightPlayerName[32];
 	};
 
 	struct FaultPacket {

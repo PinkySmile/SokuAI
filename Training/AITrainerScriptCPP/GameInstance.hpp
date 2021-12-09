@@ -18,6 +18,7 @@ namespace Trainer
 			SokuLib::Character character;
 			unsigned char palette;
 			unsigned char deck[20];
+			char name[32];
 		};
 
 		struct StartGameParams {

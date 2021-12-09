@@ -1,7 +1,8 @@
-import GameInstance
-import BaseAI
 import time
 import sys
+
+from GameInstance import GameInstance, ProtocolError, GameEndedException
+import BaseAI
 
 chr_names = [
     "Reimu",
@@ -28,7 +29,7 @@ chr_names = [
 
 
 class GameManager:
-    game_instance: GameInstance.GameInstance = None
+    game_instance: GameInstance = None
     left_ai: BaseAI.BaseAI = None
     right_ai: BaseAI.BaseAI = None
 
@@ -54,7 +55,7 @@ class GameManager:
                     "left": left_params,
                     "right": right_params,
                 })
-            except GameInstance.ProtocolError:
+            except ProtocolError:
                 if sys.exc_info()[1].code != 12:
                     raise
                 time.sleep(0.1)
@@ -63,7 +64,7 @@ class GameManager:
         if self.game_instance:
             self.game_instance.quit()
         if not self.game_instance:
-            self.game_instance = GameInstance.GameInstance(self.game_path, self.ini_path, self.port, self.just_connect)
+            self.game_instance = GameInstance(self.game_path, self.ini_path, self.port, self.just_connect)
         else:
             self.game_instance.reconnect(self.game_path, self.ini_path, self.port, self.just_connect)
         self.game_instance.set_display_mode(self.has_display)
@@ -105,8 +106,7 @@ class GameManager:
                         "left": left_inputs.pop(0),
                         "right": right_inputs.pop(0),
                     })
-                except GameInstance.GameEndedException:
-                    exc = sys.exc_info()[1]
+                except GameEndedException as exc:
                     winner = exc.winner
                     if winner == 1:
                         self.left_ai.on_win(exc.left_score, exc.right_score)

@@ -40,20 +40,25 @@ def generate_next_generation(tournament_results):
                 return result + best_candidates
 
 
-# first one is a bit special since we either create the AIs
-print("Loading generation {}".format(latest))
-# TODO: Store the best of latest generation
-tournament.ais = [NeuronAI.NeuronAI(random.randint(0, 71), i, latest) for i in range(pop_size)]
-if latest > 0:
-    tournament.ais += [NeuronAI.NeuronAI(random.randint(0, 71), i, latest - 1) for i in range(pop_size // lowering_factor)]
-else:
-    tournament.ais += [NeuronAI.NeuronAI(random.randint(0, 71), i + pop_size, latest - 1) for i in range(pop_size // lowering_factor)]
-for i in tournament.ais:
-    i.create_required_path(6, 6)
-    i.init(6, 6)
-pp = pprint.PrettyPrinter(indent=4)
-nb = math.ceil(math.log(len(tournament.ais), 2))
-while True:
-    results = sorted(tournament.play_tournament(nb), key=lambda x: x[1] * nb + x[2], reverse=True)
-    pp.pprint(results)
-    tournament.ais = generate_next_generation(results)
+def main():
+    # first one is a bit special since we either create the AIs
+    print("Loading generation {}".format(latest))
+    # TODO: Store the best of latest generation
+    tournament.ais = [NeuronAI.NeuronAI(random.randint(0, 71), i, latest) for i in range(pop_size)]
+    if latest > 0:
+        tournament.ais += [NeuronAI.NeuronAI(random.randint(0, 71), i, latest - 1) for i in range(pop_size // lowering_factor)]
+    else:
+        tournament.ais += [NeuronAI.NeuronAI(random.randint(0, 71), i + pop_size, latest - 1) for i in range(pop_size // lowering_factor)]
+    for i in tournament.ais:
+        i.create_required_path(6, 6)
+        i.init(6, 6)
+    pp = pprint.PrettyPrinter(indent=4)
+    nb = math.ceil(math.log(len(tournament.ais), 2))
+    while True:
+        results = sorted(tournament.play_tournament(nb), key=lambda x: x[1] * nb + x[2], reverse=True)
+        pp.pprint(results)
+        tournament.ais = generate_next_generation(results)
+
+
+if __name__ == '__main__':
+    main()
