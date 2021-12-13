@@ -93,10 +93,10 @@ void loadGeneration(std::vector<std::unique_ptr<GeneticAI>> &ais, unsigned popSi
 				i,
 				NEURON_COUNT,
 				GENES_COUNT,
-				basePath + std::to_string(latest < 0 ? 0 : latest) + "_" + std::to_string(i) + ".ai"
+				basePath + std::to_string(latest + 1) + "_" + std::to_string(i) + ".ai"
 			));
 		} catch (...) {
-			ais.emplace_back(new GeneticAI(latest < 0 ? 0 : latest, i, NEURON_COUNT, GENES_COUNT));
+			ais.emplace_back(new GeneticAI(latest + 1, i, NEURON_COUNT, GENES_COUNT));
 			ais.back()->save(basePath + std::to_string(ais.back()->getGeneration()) + "_" + std::to_string(ais.back()->getId()) + ".ai");
 		}
 	}
