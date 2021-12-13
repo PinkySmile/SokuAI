@@ -37,6 +37,7 @@ namespace Trainer
 		unsigned _playing;
 		unsigned _generation;
 		unsigned _round;
+		unsigned _maxRound;
 
 		static WinnerSide _getMatchWinner(const std::vector<GameManager::GameResult> &results);
 		static void _updateMatchAis(Match &match, WinnerSide winner, int side);
@@ -45,6 +46,7 @@ namespace Trainer
 		GameThread(
 			unsigned generation,
 			unsigned round,
+			unsigned maxRound,
 			bool &mutex,
 			std::vector<Match> &matches,
 			GameManager &game,
@@ -98,7 +100,7 @@ namespace Trainer
 		std::vector<std::unique_ptr<GameManager>> _gameManagers;
 
 		void _makeMatches(std::vector<PlayerEntry> &ais, std::vector<Match> &matches);
-		void _playMatches(unsigned generation, unsigned round, std::vector<Match> &matches);
+		void _playMatches(unsigned generation, unsigned round, unsigned maxRound, std::vector<Match> &matches);
 
 	public:
 		SwissTournamentManager(

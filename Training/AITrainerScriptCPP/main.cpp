@@ -25,7 +25,7 @@ unsigned NEURON_COUNT;
 unsigned GENES_COUNT;
 
 void generateNextGeneration(const std::vector<PlayerEntry> &results, std::vector<std::unique_ptr<GeneticAI>> &ais, unsigned popSize, unsigned currentLatestGen) {
-	std::string basePath = "GeneticAI_" + std::to_string(NEURON_COUNT) + "_" + std::to_string(GENES_COUNT) + "/" + std::to_string(SokuLib::TRAINING_CHARACTER) + " vs " + std::to_string(SokuLib::TRAINING_CHARACTER) + "/";
+	std::string basePath = "GeneticAI_" + std::to_string(NEURON_COUNT) + "_" + std::to_string(GENES_COUNT) + "/" + std::to_string(SokuLib::TRAINING_CHARACTER) + " vs " + std::to_string(SokuLib::TRAINING_CHARACTER) + "/ais/";
 	std::vector<std::pair<const GeneticAI *, const GeneticAI *>> pairs;
 	std::vector<const GeneticAI *> bestCandidates;
 	std::vector<GeneticAI *> result;
@@ -64,7 +64,7 @@ void saveTournamentsResults(const std::vector<PlayerEntry> &results, unsigned po
 	std::ofstream stream{
 		"GeneticAI_" + std::to_string(NEURON_COUNT) + "_" + std::to_string(GENES_COUNT) + "/" +
 			std::to_string(SokuLib::TRAINING_CHARACTER) + " vs " + std::to_string(SokuLib::TRAINING_CHARACTER) + "/" +
-			std::to_string(currentLatestGen) + "results.txt"
+			std::to_string(currentLatestGen) + "_results.txt"
 	};
 
 	for (auto &result : results) {
@@ -76,7 +76,7 @@ void saveTournamentsResults(const std::vector<PlayerEntry> &results, unsigned po
 
 void loadGeneration(std::vector<std::unique_ptr<GeneticAI>> &ais, unsigned popSize, int latest)
 {
-	std::string basePath = "GeneticAI_" + std::to_string(NEURON_COUNT) + "_" + std::to_string(GENES_COUNT) + "/" + std::to_string(SokuLib::TRAINING_CHARACTER) + " vs " + std::to_string(SokuLib::TRAINING_CHARACTER) + "/";
+	std::string basePath = "GeneticAI_" + std::to_string(NEURON_COUNT) + "_" + std::to_string(GENES_COUNT) + "/" + std::to_string(SokuLib::TRAINING_CHARACTER) + " vs " + std::to_string(SokuLib::TRAINING_CHARACTER) + "/ais/";
 	std::ifstream stream{
 		"GeneticAI_" + std::to_string(NEURON_COUNT) + "_" + std::to_string(GENES_COUNT) + "/" +
 			std::to_string(SokuLib::TRAINING_CHARACTER) + " vs " + std::to_string(SokuLib::TRAINING_CHARACTER) + "/" +

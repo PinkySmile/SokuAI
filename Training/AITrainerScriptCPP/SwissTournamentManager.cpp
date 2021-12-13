@@ -44,7 +44,7 @@ namespace Trainer
 			match.ai2.ai->toString()
 		};
 
-		printf("Match %s vs %s %s is %s\n", t[2].c_str(), t[3].c_str(), winner <= 0 ? "result" : "winner", t[winner + 1].c_str());
+		printf("Match %s vs %s %s is %s\n", t[2].c_str(), t[3].c_str(), winner <= 0 ? "result" : "winner", t[static_cast<char>(winner) + 1].c_str());
 		match.ai1.wins <<= 1;
 		match.ai2.wins <<= 1;
 		match.ai1.sides.push_back(side == 1 ? 0 : 1);
@@ -67,6 +67,7 @@ namespace Trainer
 	GameThread::GameThread(
 		unsigned generation,
 		unsigned round,
+		unsigned maxRound,
 		bool &mutex,
 		std::vector<Match> &matches,
 		GameManager &game,
@@ -83,7 +84,8 @@ namespace Trainer
 		_frameTimeout(frameTimeout),
 		_inputDelay(inputDelay),
 		_generation(generation),
-		_round(round)
+		_round(round),
+		_maxRound(maxRound)
 	{
 	}
 
@@ -114,7 +116,7 @@ namespace Trainer
 
 			this->_game.leftAi  = (side ? match.ai1 : match.ai2).ai;
 			this->_game.rightAi = (side ? match.ai2 : match.ai1).ai;
-			printf("[%u-%u][%i] Playing match %s vs %s\n", this->_generation, this->_round, this->_playing, this->_game.leftAi->toString().c_str(), this->_game.rightAi->toString().c_str());
+			printf("[gen%u-round%u/%u][%i] Playing match %s vs %s\n", this->_generation, this->_round, this->_maxRound, this->_playing, this->_game.leftAi->toString().c_str(), this->_game.rightAi->toString().c_str());
 			try {
 				this->_updateMatchAis(match, this->_getMatchWinner(
 					this->_game.run(
@@ -236,14 +238,14 @@ namespace Trainer
 		}
 	}
 
-	void SwissTournamentManager::_playMatches(unsigned generation, unsigned round, std::vector<Match> &matches)
+	void SwissTournamentManager::_playMatches(unsigned generation, unsigned round, unsigned maxRound, std::vector<Match> &matches)
 	{
 		std::vector<GameThread> threads;
 		bool mutex = false;
 
 		threads.reserve(this->_gameManagers.size());
 		for (auto &game : this->_gameManagers) {
-			threads.emplace_back(generation, round, mutex, matches, *game, std::pair<unsigned char, unsigned char>{0, 0}, this->_firstTo * 2 - 1, this->_timeout, this->_inputDelay);
+			threads.emplace_back(generation, round, maxRound, mutex, matches, *game, std::pair<unsigned char, unsigned char>{0, 0}, this->_firstTo * 2 - 1, this->_timeout, this->_inputDelay);
 			threads.back().start();
 		}
 		for (auto &thread : threads)
@@ -289,9 +291,9 @@ namespace Trainer
 		for (unsigned i = 0; i < nbRounds; i++) {
 			std::vector<Match> matches;
 
-			printf("Round %i start !\n", i);
+			printf("Round %i start !\n", i + 1);
 			this->_makeMatches(allEntries, matches);
-			this->_playMatches(generation, i, matches);
+			this->_playMatches(generation, i  +1, nbRounds, matches);
 		}
 		return allEntries;
 	}

@@ -68,6 +68,12 @@ namespace Trainer
 				leftInputs.pop_front();
 				rightInputs.pop_front();
 			}
+		} catch (const UnexpectedPacketError &e) {
+			puts(e.what());
+			puts("Restarting game instance...");
+			this->startInstance();
+			puts("Restarting game from beginning...");
+			return this->runOnce(params, frameTimout, inputDelay, maxCrashes);
 		} catch (const ConnectionResetException &) {
 			puts("Our list of allies grows thin !");
 			printf("Exit code %lX\n", this->_gameInstance.terminate());
