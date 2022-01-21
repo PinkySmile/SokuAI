@@ -28,6 +28,7 @@ namespace Trainer
 
 	class GeneticAI : public BaseAI {
 	private:
+		bool _noWire = true;
 		ObjectsNeuron *_myObjects;
 		ObjectsNeuron *_opObjects;
 		std::vector<Gene> _genome;
@@ -54,7 +55,7 @@ namespace Trainer
 		void onTimeout(unsigned char myScore, unsigned char opponentScore) override;
 		void onGameStart(SokuLib::Character myChr, SokuLib::Character opponentChr, unsigned int inputDelay) override;
 		GameInstance::PlayerParams getParams() const override;
-		Input getInputs(const GameInstance::GameFrame &frame, bool isLeft) override;
+		const char *getAction(const GameInstance::GameFrame &frame, bool isLeft, unsigned int frameId) override;
 		unsigned int getId() const;
 		int getGeneration() const;
 		void save(const std::string &path) const;

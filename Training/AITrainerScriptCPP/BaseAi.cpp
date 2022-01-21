@@ -17,6 +17,7 @@ namespace Trainer
 		"forward",
 		"backward",
 		"block_low",
+		"crouch",
 		"forward_jump",
 		"backward_jump",
 		"neutral_jump",
@@ -25,8 +26,14 @@ namespace Trainer
 		"neutral_highjump",
 		"forward_dash",
 		"backward_dash",
-		"forward_fly",
-		"backward_fly",
+		"fly1",
+		"fly2",
+		"fly3",
+		"fly4",
+		"fly6",
+		"fly7",
+		"fly8",
+		"fly9",
 		"switch_to_card_1",
 		"switch_to_card_2",
 		"switch_to_card_3",
@@ -204,6 +211,9 @@ namespace Trainer
 		{"block_low", {
 			{ false, false, false, false, false, false, BACK, DOWN }
 		}},
+		{"crouch", {
+			{ false, false, false, false, false, false, NEUTRAL, DOWN }
+		}},
 		{"forward_jump", {
 			{ false, false, false, false, false, false, FRONT, UP }
 		}},
@@ -232,11 +242,29 @@ namespace Trainer
 			{ false, false, false, false, false, false, NEUTRAL, NEUTRAL },
 			{ false, false, false, false, false, false, BACK,    NEUTRAL },
 		}},
-		{"forward_fly", {
+		{"fly1", {
+			{ false, false, false, true, false, false, BACK, UP }
+		}},
+		{"fly2", {
+			{ false, false, false, true, false, false, NEUTRAL, UP }
+		}},
+		{"fly3", {
+			{ false, false, false, true, false, false, FRONT, UP }
+		}},
+		{"fly4", {
+			{ false, false, false, true, false, false, BACK, NEUTRAL }
+		}},
+		{"fly6", {
 			{ false, false, false, true, false, false, FRONT, NEUTRAL }
 		}},
-		{"backward_fly", {
-			{ false, false, false, true, false, false, BACK, NEUTRAL }
+		{"fly7", {
+			{ false, false, false, true, false, false, BACK, DOWN }
+		}},
+		{"fly8", {
+			{ false, false, false, true, false, false, NEUTRAL, DOWN }
+		}},
+		{"fly9", {
+			{ false, false, false, true, false, false, FRONT, DOWN }
 		}},
 		{"be1", {
 			{ false, false, false, true,  false, false, BACK, DOWN },
@@ -298,18 +326,28 @@ namespace Trainer
 
 	const char *BaseAI::getAction(const GameInstance::GameFrame &frame, bool isLeft)
 	{
-		return BaseAI::actions[rand() % BaseAI::actions.size()];
+		return this->getAction(frame, isLeft, -1);
 	}
 
 	Input BaseAI::getInputs(const GameInstance::GameFrame &frame, bool isLeft)
 	{
+		return this->getInputs(frame, isLeft, -1);
+	}
+
+	Input BaseAI::getInputs(const GameInstance::GameFrame &frame, bool isLeft, unsigned int frameId)
+	{
 		if (this->_bufferedInput.empty())
-			this->_bufferedInput = BaseAI::actionsBuffers.at(this->getAction(frame, isLeft));
+			this->_bufferedInput = BaseAI::actionsBuffers.at(this->getAction(frame, isLeft, frameId));
 
 		Input input = this->_bufferedInput.back();
 
 		input.H *= isLeft ? frame.left.direction : frame.right.direction;
 		this->_bufferedInput.pop_back();
 		return input;
+	}
+
+	const char *BaseAI::getAction(const GameInstance::GameFrame &frame, bool isLeft, unsigned int frameId)
+	{
+		return BaseAI::actions[rand() % BaseAI::actions.size()];
 	}
 }

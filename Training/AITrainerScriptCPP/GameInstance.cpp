@@ -403,6 +403,7 @@ namespace Trainer
 	DWORD GameInstance::terminate()
 	{
 		if (this->_processInformation.hProcess != INVALID_HANDLE_VALUE) {
+			puts("Terminating process...");
 			TerminateProcess(this->_processInformation.hProcess, 0);
 			WaitForSingleObject(this->_processInformation.hProcess, INFINITE);
 

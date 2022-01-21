@@ -71,7 +71,9 @@ namespace Trainer
 		virtual void onTimeout(unsigned char myScore, unsigned char opponentScore) {}
 		virtual void onGameStart(SokuLib::Character myChr, SokuLib::Character opponentChr, unsigned int inputDelay) {}
 		virtual const char *getAction(const GameInstance::GameFrame &frame, bool isLeft);
+		virtual const char *getAction(const GameInstance::GameFrame &frame, bool isLeft, unsigned frameId);
 		virtual Input getInputs(const GameInstance::GameFrame &frame, bool isLeft);
+		virtual Input getInputs(const GameInstance::GameFrame &frame, bool isLeft, unsigned frameId);
 		virtual GameInstance::PlayerParams getParams() const
 		{
 			GameInstance::PlayerParams params{

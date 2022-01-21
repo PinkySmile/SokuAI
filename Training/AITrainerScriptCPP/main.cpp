@@ -85,6 +85,7 @@ void loadGeneration(std::vector<std::unique_ptr<GeneticAI>> &ais, unsigned popSi
 
 	_mkdir(("GeneticAI_" + std::to_string(NEURON_COUNT) + "_" + std::to_string(GENES_COUNT)).c_str());
 	_mkdir(("GeneticAI_" + std::to_string(NEURON_COUNT) + "_" + std::to_string(GENES_COUNT) + "/" + std::to_string(SokuLib::TRAINING_CHARACTER) + " vs " + std::to_string(SokuLib::TRAINING_CHARACTER)).c_str());
+	_mkdir(("GeneticAI_" + std::to_string(NEURON_COUNT) + "_" + std::to_string(GENES_COUNT) + "/" + std::to_string(SokuLib::TRAINING_CHARACTER) + " vs " + std::to_string(SokuLib::TRAINING_CHARACTER) + "/ais").c_str());
 	ais.reserve(popSize + popSize / LOWERING_FACTOR);
 	for (int i = 0; i < popSize; i++) {
 		try {
@@ -93,9 +94,10 @@ void loadGeneration(std::vector<std::unique_ptr<GeneticAI>> &ais, unsigned popSi
 				i,
 				NEURON_COUNT,
 				GENES_COUNT,
-				basePath + std::to_string(latest + 1) + "_" + std::to_string(i) + ".ai"
+				basePath + std::to_string(latest) + "_" + std::to_string(i) + ".ai"
 			));
-		} catch (...) {
+		} catch (std::exception &e) {
+			printf("Cannot load AI: %s. Creating dummy one.\n", e.what());
 			ais.emplace_back(new GeneticAI(latest + 1, i, NEURON_COUNT, GENES_COUNT));
 			ais.back()->save(basePath + std::to_string(ais.back()->getGeneration()) + "_" + std::to_string(ais.back()->getId()) + ".ai");
 		}

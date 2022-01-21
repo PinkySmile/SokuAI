@@ -61,8 +61,8 @@ namespace Trainer
 				if (frameTimout <= 0)
 					this->_gameInstance.endGame();
 
-				leftInputs.push_back(this->leftAi->getInputs(state, true));
-				rightInputs.push_back(this->rightAi->getInputs(state, false));
+				leftInputs.push_back(this->leftAi->getInputs(state, true, frameTimout));
+				rightInputs.push_back(this->rightAi->getInputs(state, false, frameTimout));
 
 				state = this->_gameInstance.tick({leftInputs.front(), rightInputs.front()});
 				leftInputs.pop_front();
