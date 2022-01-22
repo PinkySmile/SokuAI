@@ -130,6 +130,7 @@ namespace Trainer
 			for (auto &data : this->_genome.back().data)
 				data = dist1(random);
 		}
+		printf("%x, %x:%s", this->_genome.back().data[0], this->_genome.back().neuronIdIn, this->_genome.back().isInput ? "true" : "false");
 		stream.read(reinterpret_cast<char *>(this->_genome.data()), this->_genome.size() * sizeof(*this->_genome.data()));
 		puts("Creating neurons...");
 		this->_createNeurons(middleLayerSize);
