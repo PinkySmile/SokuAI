@@ -245,7 +245,7 @@ namespace Trainer
 
 		threads.reserve(this->_gameManagers.size());
 		for (auto &game : this->_gameManagers) {
-			threads.emplace_back(generation, round, maxRound, mutex, matches, *game, std::pair<unsigned char, unsigned char>{0, 0}, this->_firstTo * 2 - 1, this->_timeout, this->_inputDelay);
+			threads.emplace_back(generation, round, maxRound, mutex, matches, *game, std::pair<unsigned char, unsigned char>{0, 0}, this->_firstTo, this->_timeout, this->_inputDelay);
 			threads.back().start();
 		}
 		for (auto &thread : threads)

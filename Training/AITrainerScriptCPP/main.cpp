@@ -158,7 +158,7 @@ std::mt19937 random;
 int main(int argc, char *argv[])
 {
 	if (argc < 8) {
-		printf("Usage: %s <game_path> <port_start> <nb_game_instances> <population_size> <input_delay> <middle_layer_size> <gene_count> [<SWRSToys.ini>]\n", argv[0]);
+		printf("Usage: %s <game_path> <port_start> <nb_game_instances> <population_size> <input_delay> <middle_layer_size> <gene_count> <first_to> [<SWRSToys.ini>]\n", argv[0]);
 		return EXIT_FAILURE;
 	}
 
@@ -172,8 +172,9 @@ int main(int argc, char *argv[])
 	unsigned inputDelay = std::stoul(argv[5]);
 	NEURON_COUNT = std::stoul(argv[6]);
 	GENES_COUNT = std::stoul(argv[7]);
-	const char *ini = argc == 9 ? argv[8] : nullptr;
-	SwissTournamentManager tournament(nb, port, client, inputDelay, 5 * 60 * 60, 1, ini);
+	unsigned ft = std::stoul(argv[8]);
+	const char *ini = argc == 10 ? argv[9] : nullptr;
+	SwissTournamentManager tournament(nb, port, client, inputDelay, 5 * 60 * 60, ft, ini);
 	auto latest = getLatestGen(SokuLib::TRAINING_CHARACTER, SokuLib::TRAINING_CHARACTER);
 	std::vector<std::unique_ptr<GeneticAI>> ais;
 

@@ -116,9 +116,41 @@ namespace Trainer
 	std::vector<GameManager::GameResult> GameManager::run(GameInstance::StartGameParams params, unsigned int nb, unsigned int frameTimout, unsigned int inputDelay, bool swap)
 	{
 		std::vector<GameManager::GameResult> result;
+		int leftWins = 0;
+		int rightWins = 0;
 
-		for (int i = 0; i < nb; i++) {
+		for (;;) {
 			result.push_back(this->runOnce(params, frameTimout, inputDelay));
+			switch (result.back().winner) {
+			case WINNER_SIDE_DRAW:
+				if (result.back().score.first > result.back().score.second) {
+					leftWins++;
+					break;
+				}
+				if (result.back().score.first < result.back().score.second) {
+					rightWins++;
+					break;
+				}
+				if (result.back().hpLeft.first > result.back().hpLeft.second) {
+					leftWins++;
+					break;
+				}
+				if (result.back().hpLeft.first < result.back().hpLeft.second) {
+					rightWins++;
+					break;
+				}
+				leftWins++;
+				rightWins++;
+				break;
+			case WINNER_SIDE_LEFT:
+				leftWins++;
+				break;
+			case WINNER_SIDE_RIGHT:
+				rightWins++;
+				break;
+			}
+			if (leftWins >= nb || rightWins >= nb)
+				return result;
 			if (swap) {
 				auto old = this->rightAi;
 				auto oldParams = params.right;
@@ -130,6 +162,5 @@ namespace Trainer
 				params.left = oldParams;
 			}
 		}
-		return result;
 	}
 }
