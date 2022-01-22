@@ -75,7 +75,7 @@ namespace Trainer
 		for (int i = 0; i < parent1._genome.size(); i++)
 			this->_genome.push_back((random() % 2 ? parent1 : parent2)._genome[i]);
 		if (random() % 1000 == 0)
-			this->_genome[random() % this->_genome.size()].data[random() % 3] ^= (1 << (random() % 32));
+			this->_genome[random() % this->_genome.size()].data[random() % 3] ^= (1 << (random() % 16));
 		puts("Creating neurons...");
 		this->_createNeurons(middleLayerSize);
 		puts("Generating links...");
