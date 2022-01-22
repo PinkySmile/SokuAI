@@ -72,10 +72,11 @@ namespace Trainer
 		printf("Creating child AI from %s and %s\n", parent1.toString().c_str(), parent2.toString().c_str());
 		assert(parent1._genome.size() == parent2._genome.size());
 		puts("Generating genome...");
-		for (int i = 0; i < parent1._genome.size(); i++)
+		for (int i = 0; i < parent1._genome.size(); i++) {
 			this->_genome.push_back((random() % 2 ? parent1 : parent2)._genome[i]);
-		if (random() % 1000 == 0)
-			this->_genome[random() % this->_genome.size()].data[random() % 3] ^= (1 << (random() % 16));
+			if (random() % 1000 == 0)
+				this->_genome.back().data[random() % (sizeof(Gene::data) / sizeof(*Gene::data))] ^= (1 << (random() % (sizeof(*Gene::data) * 8)));
+		}
 		puts("Creating neurons...");
 		this->_createNeurons(middleLayerSize);
 		puts("Generating links...");
