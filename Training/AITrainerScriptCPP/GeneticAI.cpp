@@ -61,6 +61,11 @@
 #define DIVISOR_OBJECT_COUNT                70.f
 
 extern std::mt19937 random;
+extern std::uniform_int_distribution<unsigned short> dist1{0, 0xFFFF};
+extern std::uniform_int_distribution<unsigned short> dist2{0, 1};
+extern std::uniform_int_distribution<unsigned short> dist3{0, sizeof(*Trainer::Gene::data) * 8};
+extern std::uniform_int_distribution<unsigned short> dist4{0, sizeof(Trainer::Gene::data) / sizeof(*Trainer::Gene::data)};
+extern std::uniform_int_distribution<unsigned short> dist5{0, 1000};
 
 namespace Trainer
 {
@@ -73,9 +78,9 @@ namespace Trainer
 		assert(parent1._genome.size() == parent2._genome.size());
 		puts("Generating genome...");
 		for (int i = 0; i < parent1._genome.size(); i++) {
-			this->_genome.push_back((random() % 2 ? parent1 : parent2)._genome[i]);
-			if (random() % 1000 == 0)
-				this->_genome.back().data[random() % (sizeof(Gene::data) / sizeof(*Gene::data))] ^= (1 << (random() % (sizeof(*Gene::data) * 8)));
+			this->_genome.push_back((dist2(random) ? parent1 : parent2)._genome[i]);
+			if (dist5(random) == 0)
+				this->_genome.back().data[dist4(random)] ^= (1 << dist3(random));
 		}
 		puts("Creating neurons...");
 		this->_createNeurons(middleLayerSize);
@@ -96,7 +101,7 @@ namespace Trainer
 		for (int i = 0; i < genCount; i++) {
 			this->_genome.push_back({});
 			for (auto &data : this->_genome.back().data)
-				data = random();
+				data = dist1(random);
 		}
 		puts("Creating neurons...");
 		this->_createNeurons(middleLayerSize);
@@ -123,7 +128,7 @@ namespace Trainer
 		for (int i = 0; i < genCount; i++) {
 			this->_genome.push_back({});
 			for (auto &data : this->_genome.back().data)
-				data = random();
+				data = dist1(random);
 		}
 		stream.read(reinterpret_cast<char *>(this->_genome.data()), this->_genome.size() * sizeof(*this->_genome.data()));
 		puts("Creating neurons...");
