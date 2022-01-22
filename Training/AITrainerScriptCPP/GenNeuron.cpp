@@ -19,7 +19,7 @@ namespace Trainer
 			}
 		}
 		assert(!std::isnan(this->_val));
-		return std::clamp(this->_val, -10.f, 10.f);
+		return std::clamp(this->_val, -1.f, 1.f);
 	}
 
 	void GenNeuron::startComputed()

@@ -22,7 +22,7 @@ namespace Trainer
 			short weight;
 			short add;
 		};
-		unsigned short data[5];
+		unsigned short data[4];
 	};
 #pragma pack(pop)
 

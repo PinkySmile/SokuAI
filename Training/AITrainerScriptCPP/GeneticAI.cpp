@@ -14,7 +14,7 @@
 #define STATE_NEURONS_COUNT (38 + 3 + 14)
 #define INPUT_NEURONS_COUNT (STATE_NEURONS_COUNT * 2 + 3 + 2 + 4 + 1)
 #define OBJECTS_OFFSET 0
-#define WEATHER_OFFSET 3
+#define WEATHER_OFFSET 2
 #define STATE_OFFSET 5
 #define HAND_INDEX 22
 #define SKILLS_INDEX 24
@@ -119,6 +119,11 @@ namespace Trainer
 			throw std::invalid_argument(path + ": " + strerror(errno));
 		puts("Loading...");
 		this->_genome.resize(genCount);
+		for (int i = 0; i < genCount; i++) {
+			this->_genome.push_back({});
+			for (auto &data : this->_genome.back().data)
+				data = random();
+		}
 		stream.read(reinterpret_cast<char *>(this->_genome.data()), this->_genome.size() * sizeof(*this->_genome.data()));
 		puts("Creating neurons...");
 		this->_createNeurons(middleLayerSize);
@@ -307,6 +312,7 @@ namespace Trainer
 
 		try {
 			float sum = 0;
+			int neur = 0;
 
 			for (auto &neuron : this->_outNeurons)
 				if (neuron->getValue() > 0)
@@ -323,8 +329,9 @@ namespace Trainer
 				if (sum <= this->_outNeurons[i]->getValue())
 					return BaseAI::actions[i];
 				sum -= this->_outNeurons[i]->getValue();
+				neur = i;
 			}
-			assert(false);
+			return BaseAI::actions[neur];
 			//return {
 			//	this->_outNeurons[0]->getValue() >= 0.5,
 			//	this->_outNeurons[1]->getValue() >= 0.5,
@@ -372,6 +379,9 @@ namespace Trainer
 	void GeneticAI::_generateLinks()
 	{
 		for (auto &gene : this->_genome) {
+			gene.neuronIdIn  &= 0x1FF;
+			gene.neuronIdOut &= 0x1FF;
+
 			auto *neurOut = reinterpret_cast<GenNeuron *>(this->getOutNeuron(gene));
 			auto *neurIn = this->getInNeuron(gene);
 
