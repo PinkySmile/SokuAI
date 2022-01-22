@@ -200,16 +200,17 @@ data = file.read()
 file.close()
 file = open("net.txt", "w")
 
+print(len(data))
+for i in range(0, len(data), 10):
+	isI = data[i]
+	isO = data[i+3]
+	input  = int.from_bytes(data[i+1:i+3], byteorder="little")
+	output = int.from_bytes(data[i+4:i+6], byteorder="little")
+	wgt	= int.from_bytes(data[i+6:i+8], byteorder="little")
 
-for i in range(0, len(data), 8):
-	input  = int.from_bytes(data[i:i+2], byteorder="little")
-	output = int.from_bytes(data[i+2:i+4], byteorder="little")
-	wgt	= int.from_bytes(data[i+4:i+6], byteorder="little")
-
-	input  &= 0x81FF
-	output &= 0x81FF
-	if input & 0x8000:
-		input &= 0x7FFF
+	input  &= 0x1FF
+	output &= 0x1FF
+	if isI:
 		if input >= len(inputs):
 			continue
 		input = inputs[input]
@@ -217,8 +218,7 @@ for i in range(0, len(data), 8):
 		continue
 	else:
 		input = "N{:X}".format(input)
-	if output & 0x8000:
-		output &= 0x7FFF
+	if isO:
 		if output >= len(outputs):
 			continue
 		output = outputs[output]

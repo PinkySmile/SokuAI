@@ -126,7 +126,7 @@ namespace Trainer
 	{
 		printf("Loading AI from %s\n", path.c_str());
 
-		std::ifstream stream{path};
+		std::ifstream stream{path, std::ifstream::binary};
 
 		if (stream.fail())
 			throw std::invalid_argument(path + ": " + strerror(errno));
@@ -153,7 +153,7 @@ namespace Trainer
 
 	void GeneticAI::save(const std::string &path) const
 	{
-		std::ofstream stream{path};
+		std::ofstream stream{path, std::ifstream::binary};
 
 		if (stream.fail())
 			throw std::invalid_argument(path + ": " + strerror(errno));
