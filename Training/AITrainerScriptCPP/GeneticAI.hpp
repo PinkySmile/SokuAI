@@ -15,14 +15,14 @@ namespace Trainer
 #pragma pack(push, 1)
 	union Gene {
 		struct {
-			bool isInput : 1;
-			unsigned short neuronIdIn: 15;
-			bool isOutput : 1;
-			unsigned short neuronIdOut: 15;
+			bool isInput;
+			unsigned short neuronIdIn;
+			bool isOutput;
+			unsigned short neuronIdOut;
 			short weight;
 			short add;
 		};
-		unsigned short data[4];
+		unsigned short data[5];
 	};
 #pragma pack(pop)
 
