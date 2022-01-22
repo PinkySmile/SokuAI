@@ -99,8 +99,12 @@ namespace Trainer
 		printf("Creating new AI with %i neurons and %i genes\n", middleLayerSize, genCount);
 		for (int i = 0; i < genCount; i++) {
 			this->_genome.push_back({});
-			for (auto &data : this->_genome.back().data)
-				data = dist1(random);
+			this->_genome.back().isInput = dist2(random);
+			this->_genome.back().isOutput = dist2(random);
+			this->_genome.back().neuronIdIn = dist1(random);
+			this->_genome.back().neuronIdOut = dist1(random);
+			this->_genome.back().add = dist1(random);
+			this->_genome.back().weight = dist1(random);
 		}
 		printf("%X %X %X %X %X (%i)\n", this->_genome.back().data[0], this->_genome.back().data[1], this->_genome.back().data[2], this->_genome.back().data[3], this->_genome.back().data[4], sizeof(this->_genome.back()));
 		printf("%x:%s\n", this->_genome.back().neuronIdIn, this->_genome.back().isInput ? "true" : "false");
@@ -130,8 +134,12 @@ namespace Trainer
 		this->_genome.resize(genCount);
 		for (int i = 0; i < genCount; i++) {
 			this->_genome.push_back({});
-			for (auto &data : this->_genome.back().data)
-				data = dist1(random);
+			this->_genome.back().isInput = dist2(random);
+			this->_genome.back().isOutput = dist2(random);
+			this->_genome.back().neuronIdIn = dist1(random);
+			this->_genome.back().neuronIdOut = dist1(random);
+			this->_genome.back().add = dist1(random);
+			this->_genome.back().weight = dist1(random);
 		}
 		stream.read(reinterpret_cast<char *>(this->_genome.data()), this->_genome.size() * sizeof(*this->_genome.data()));
 		puts("Creating neurons...");
