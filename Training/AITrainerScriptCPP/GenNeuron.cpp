@@ -14,12 +14,12 @@ namespace Trainer
 			this->_val = 0;
 			this->_computed = true;
 			for (auto &link : this->_links) {
-				this->_val += link.neuron.getValue() * link.weight + link.add;
+				this->_val += link.neuron.getValue() * link.weight;
 				assert(!std::isnan(this->_val));
 			}
 		}
 		assert(!std::isnan(this->_val));
-		return std::clamp(this->_val, -1.f, 1.f);
+		return this->_val > 0 ? 1.f : 0.f;
 	}
 
 	void GenNeuron::startComputed()
@@ -27,8 +27,8 @@ namespace Trainer
 		this->_computed = false;
 	}
 
-	void GenNeuron::addLink(float weight, float add, Neuron &neuron)
+	void GenNeuron::addLink(float weight, Neuron &neuron)
 	{
-		this->_links.emplace_back(neuron, weight, add);
+		this->_links.emplace_back(neuron, weight);
 	}
 }

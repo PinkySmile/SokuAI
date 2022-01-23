@@ -7,15 +7,15 @@
 #include "SwissTournamentManager.hpp"
 #include "Exceptions.hpp"
 
-#ifdef _DEBUG
-#define DISPLAY_PARAM true
-#define SOUND_PARAM 10, 10
-#define GAME_TPS 60
-#else
+//#ifdef _DEBUG
+//#define DISPLAY_PARAM true
+//#define SOUND_PARAM 10, 10
+//#define GAME_TPS 60
+//#else
 #define DISPLAY_PARAM false
 #define SOUND_PARAM 0, 0
 #define GAME_TPS 60000
-#endif
+//#endif
 
 namespace Trainer
 {
@@ -45,6 +45,7 @@ namespace Trainer
 		};
 
 		printf("Match %s vs %s %s is %s\n", t[2].c_str(), t[3].c_str(), winner <= 0 ? "result" : "winner", t[static_cast<char>(winner) + 1].c_str());
+		fflush(stdout);
 		match.ai1.wins <<= 1;
 		match.ai2.wins <<= 1;
 		match.ai1.sides.push_back(side == 1 ? 0 : 1);
@@ -68,7 +69,7 @@ namespace Trainer
 		unsigned generation,
 		unsigned round,
 		unsigned maxRound,
-		bool &mutex,
+		std::mutex &mutex,
 		std::vector<Match> &matches,
 		GameManager &game,
 		std::pair<unsigned char, unsigned char> stageInfo,
@@ -92,10 +93,9 @@ namespace Trainer
 	void GameThread::run()
 	{
 		while (true) {
-			while (this->_matchMutex);
-			this->_matchMutex = true;
+			this->_matchMutex.lock();
 			if (this->_matches.empty()) {
-				this->_matchMutex = false;
+				this->_matchMutex.unlock();
 				return;
 			}
 
@@ -103,7 +103,7 @@ namespace Trainer
 
 			this->_playing = this->_matches.size();
 			this->_matches.pop_back();
-			this->_matchMutex = false;
+			this->_matchMutex.unlock();
 
 			auto side = true;
 
@@ -117,6 +117,7 @@ namespace Trainer
 			this->_game.leftAi  = (side ? match.ai1 : match.ai2).ai;
 			this->_game.rightAi = (side ? match.ai2 : match.ai1).ai;
 			printf("[gen%u-round%u/%u][%i] Playing match %s vs %s\n", this->_generation, this->_round, this->_maxRound, this->_playing, this->_game.leftAi->toString().c_str(), this->_game.rightAi->toString().c_str());
+			fflush(stdout);
 			try {
 				this->_updateMatchAis(match, this->_getMatchWinner(
 					this->_game.run(
@@ -160,7 +161,7 @@ namespace Trainer
 	}
 
 	GameOpenThread::GameOpenThread(
-		bool &mutex,
+		std::mutex &mutex,
 		std::vector<std::unique_ptr<GameManager>> &container,
 		const std::string &path,
 		unsigned short port,
@@ -188,10 +189,9 @@ namespace Trainer
 	{
 		auto instance = new GameManager(this->_path, this->_port, this->_tps, this->_hasDisplay, this->_bgmVolume, this->_sfxVolume, this->_iniPath, this->_justConnect);
 
-		while (this->_mutex);
-		this->_mutex = true;
+		this->_mutex.lock();
 		this->_container.emplace_back(instance);
-		this->_mutex = false;
+		this->_mutex.unlock();
 	}
 
 	void GameOpenThread::join()
@@ -241,7 +241,7 @@ namespace Trainer
 	void SwissTournamentManager::_playMatches(unsigned generation, unsigned round, unsigned maxRound, std::vector<Match> &matches)
 	{
 		std::vector<GameThread> threads;
-		bool mutex = false;
+		std::mutex mutex;
 
 		threads.reserve(this->_gameManagers.size());
 		for (auto &game : this->_gameManagers) {
@@ -266,7 +266,7 @@ namespace Trainer
 		_timeout(timeLimit)
 	{
 		std::vector<GameOpenThread> openThread;
-		bool mutex = false;
+		std::mutex mutex;
 
 		openThread.reserve(gamePool);
 		printf("Opening %u games\n", gamePool);

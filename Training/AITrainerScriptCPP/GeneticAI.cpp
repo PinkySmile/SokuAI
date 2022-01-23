@@ -12,7 +12,7 @@
 
 #define PALETTE_COUNT 74
 #define STATE_NEURONS_COUNT (38 + 3 + 14)
-#define INPUT_NEURONS_COUNT (STATE_NEURONS_COUNT * 2 + 3 + 2 + 4 + 1)
+#define INPUT_NEURONS_COUNT (STATE_NEURONS_COUNT * 2 + 3 + 2 + 4 + 1 + 1)
 #define OBJECTS_OFFSET 0
 #define WEATHER_OFFSET 2
 #define STATE_OFFSET 5
@@ -103,13 +103,12 @@ namespace Trainer
 			this->_genome.back().isOutput = dist2(random);
 			this->_genome.back().neuronIdIn = dist1(random);
 			this->_genome.back().neuronIdOut = dist1(random);
-			this->_genome.back().add = dist1(random);
 			this->_genome.back().weight = dist1(random);
 		}
 		printf("%X %X %X %X %X (%i)\n", this->_genome.back().data[0], this->_genome.back().data[1], this->_genome.back().data[2], this->_genome.back().data[3], this->_genome.back().data[4], sizeof(this->_genome.back()));
 		printf("%x:%s\n", this->_genome.back().neuronIdIn, this->_genome.back().isInput ? "true" : "false");
 		printf("%x:%s\n", this->_genome.back().neuronIdOut, this->_genome.back().isOutput ? "true" : "false");
-		printf("%x:%x\n", this->_genome.back().weight, this->_genome.back().add);
+		printf("%x:%x\n", this->_genome.back().weight);
 		puts("Creating neurons...");
 		this->_createNeurons(middleLayerSize);
 		puts("Generating links...");
@@ -138,7 +137,6 @@ namespace Trainer
 			this->_genome.back().isOutput = dist2(random);
 			this->_genome.back().neuronIdIn = dist1(random);
 			this->_genome.back().neuronIdOut = dist1(random);
-			this->_genome.back().add = dist1(random);
 			this->_genome.back().weight = dist1(random);
 		}
 		stream.read(reinterpret_cast<char *>(this->_genome.data()), this->_genome.size() * sizeof(*this->_genome.data()));
@@ -321,6 +319,7 @@ namespace Trainer
 		this->_inNeurons[STATE_OFFSET + 0x70]->setValue((random() - random.min()) * 2.f / (random.max() - random.min()) - 1);
 		this->_inNeurons[STATE_OFFSET + 0x71]->setValue((random() - random.min()) * 2.f / (random.max() - random.min()) - 1);
 		this->_inNeurons[STATE_OFFSET + 0x71]->setValue(frameId / 65535.f);
+		this->_inNeurons[STATE_OFFSET + 0x70]->setValue(1);
 
 		for (auto &neuron : this->_neurons)
 			reinterpret_cast<GenNeuron &>(*neuron).startComputed();
@@ -398,21 +397,28 @@ namespace Trainer
 		for (auto &gene : this->_genome) {
 			gene.neuronIdIn  &= 0x1FF;
 			gene.neuronIdOut &= 0x1FF;
+			//printf("%s%i -> %s%i (", gene.isInput ? "I" : "N", gene.neuronIdIn, gene.isOutput ? "O" : "N", gene.neuronIdOut);
+			//fflush(stdout);
 
 			auto *neurOut = reinterpret_cast<GenNeuron *>(this->getOutNeuron(gene));
 			auto *neurIn = this->getInNeuron(gene);
 
-			if (!neurOut || !neurIn)
+			//printf("%p -> %p)\n", neurOut, neurIn);
+			if (!neurOut || !neurIn) {
+				//puts("Bad");
 				continue;
+			}
 			this->_noWire &= !gene.isOutput;
+			//printf("Adding link (%s)\n", this->_noWire ? "true" : "false");
 			neurOut->addLink(
-				gene.weight / (INT16_MAX / 4.f),
-				gene.add    / (INT16_MAX / 4.f),
+				gene.weight > 0 ? (static_cast<float>(gene.weight) / INT16_MAX) : (static_cast<float>(gene.weight) / INT16_MIN),
 				*neurIn
 			);
+			//puts("Loop");
 		}
 		if (this->_noWire)
 			printf("%s: No output neuron connected.\n", this->toString().c_str());
+		puts("Done");
 	}
 
 	int GeneticAI::_calculatePalette()
@@ -427,20 +433,22 @@ namespace Trainer
 
 	Neuron *GeneticAI::getInNeuron(const Gene &gene) const
 	{
+		auto id = gene.neuronIdIn & 0x1FF;
 		auto &arr = (gene.isInput ? this->_inNeurons : this->_neurons);
 
-		if (gene.neuronIdIn >= arr.size())
+		if (id >= arr.size())
 			return nullptr;
-		return &*arr[gene.neuronIdIn];
+		return &*arr[id];
 	}
 
 	Neuron *GeneticAI::getOutNeuron(const Gene &gene)
 	{
+		auto id = gene.neuronIdOut & 0x1FF;
 		auto &arr = (gene.isOutput ? this->_outNeurons : this->_neurons);
 
-		if (gene.neuronIdOut >= arr.size())
+		if (id >= arr.size())
 			return nullptr;
-		return &*arr[gene.neuronIdOut];
+		return &*arr[id];
 	}
 
 }

@@ -125,7 +125,8 @@ inputs = [
 	"Rnd2",
 	"Rnd3",
 	"Rnd4",
-	"FrmID"
+	"FrmID",
+	"Bias"
 ]
 outputs = [
 	"Stnd",
@@ -201,7 +202,7 @@ file.close()
 file = open("net.txt", "w")
 
 print(len(data))
-for i in range(0, len(data), 10):
+for i in range(0, len(data), 8):
 	isI = data[i]
 	isO = data[i+3]
 	input  = int.from_bytes(data[i+1:i+3], byteorder="little")

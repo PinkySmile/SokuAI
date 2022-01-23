@@ -85,6 +85,16 @@ namespace Trainer
 			}
 			puts("Restarting game from beginning...");
 			return this->runOnce(params, frameTimout, inputDelay, maxCrashes - 1);
+		} catch (const InvalidPacketError &e) {
+			puts(e.what());
+			puts("Restarting game instance...");
+			this->startInstance();
+			if (maxCrashes == 0) {
+				puts("Too many crashes, aborting the game");
+				throw;
+			}
+			puts("Restarting game from beginning...");
+			return this->runOnce(params, frameTimout, inputDelay, maxCrashes - 1);
 		} catch (const GameEndedException &e) {
 			auto winner = e.getWinner();
 			auto leftScore = e.getLeftScore();

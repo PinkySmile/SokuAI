@@ -15,12 +15,10 @@ namespace Trainer
 		struct Link {
 			Neuron &neuron;
 			float weight;
-			float add;
 
-			Link(Neuron &neuron, float weight, float add) :
+			Link(Neuron &neuron, float weight) :
 				neuron(neuron),
-				weight(weight),
-				add(add)
+				weight(weight)
 			{}
 		};
 
@@ -30,7 +28,7 @@ namespace Trainer
 
 	public:
 		void startComputed();
-		void addLink(float weight, float add, Neuron &neuron);
+		void addLink(float weight, Neuron &neuron);
 		float getValue() override;
 	};
 }

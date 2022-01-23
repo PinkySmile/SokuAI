@@ -6,6 +6,7 @@
 #define SOKUAI_SWISSTOURNAMENTMANAGER_HPP
 
 
+#include <mutex>
 #include <thread>
 #include "GameManager.hpp"
 #include "BaseAi.hpp"
@@ -27,7 +28,7 @@ namespace Trainer
 	class GameThread {
 	private:
 		std::thread _thread;
-		bool &_matchMutex;
+		std::mutex &_matchMutex;
 		std::vector<Match> &_matches;
 		GameManager &_game;
 		std::pair<unsigned char, unsigned char> _stageInfo;
@@ -47,7 +48,7 @@ namespace Trainer
 			unsigned generation,
 			unsigned round,
 			unsigned maxRound,
-			bool &mutex,
+			std::mutex &mutex,
 			std::vector<Match> &matches,
 			GameManager &game,
 			std::pair<unsigned char, unsigned char> stageInfo = {0, 0},
@@ -63,7 +64,7 @@ namespace Trainer
 	class GameOpenThread {
 	private:
 		std::thread _thread;
-		bool &_mutex;
+		std::mutex &_mutex;
 		std::vector<std::unique_ptr<GameManager>> &_container;
 		std::string _path;
 		unsigned short _port;
@@ -76,7 +77,7 @@ namespace Trainer
 
 	public:
 		GameOpenThread(
-			bool &_mutex,
+			std::mutex &_mutex,
 			std::vector<std::unique_ptr<GameManager>> &_container,
 			const std::string &path,
 			unsigned short port,
