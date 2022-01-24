@@ -64,7 +64,7 @@ extern std::mt19937 random;
 extern std::uniform_int_distribution<unsigned short> dist1{0, 0xFFFF};
 extern std::uniform_int_distribution<unsigned short> dist2{0, 1};
 extern std::uniform_int_distribution<unsigned short> dist3{0, sizeof(*Trainer::Gene::data) * 8};
-extern std::uniform_int_distribution<unsigned short> dist4{0, sizeof(Trainer::Gene::data) / sizeof(*Trainer::Gene::data)};
+extern std::uniform_int_distribution<unsigned short> dist4{0, sizeof(Trainer::Gene) / sizeof(*Trainer::Gene::data)};
 extern std::uniform_int_distribution<unsigned short> dist5{0, 1000};
 
 namespace Trainer
@@ -76,6 +76,7 @@ namespace Trainer
 	{
 		printf("Creating child AI from %s and %s\n", parent1.toString().c_str(), parent2.toString().c_str());
 		assert(parent1._genome.size() == parent2._genome.size());
+		this->_genome.reserve(parent1._genome.size());
 		puts("Generating genome...");
 		for (int i = 0; i < parent1._genome.size(); i++) {
 			this->_genome.push_back((dist2(random) ? parent1 : parent2)._genome[i]);
@@ -97,6 +98,7 @@ namespace Trainer
 		_id(id)
 	{
 		printf("Creating new AI with %i neurons and %i genes\n", middleLayerSize, genCount);
+		this->_genome.reserve(genCount);
 		for (int i = 0; i < genCount; i++) {
 			this->_genome.push_back({});
 			this->_genome.back().isInput = dist2(random);
@@ -108,7 +110,7 @@ namespace Trainer
 		printf("%X %X %X %X %X (%i)\n", this->_genome.back().data[0], this->_genome.back().data[1], this->_genome.back().data[2], this->_genome.back().data[3], this->_genome.back().data[4], sizeof(this->_genome.back()));
 		printf("%x:%s\n", this->_genome.back().neuronIdIn, this->_genome.back().isInput ? "true" : "false");
 		printf("%x:%s\n", this->_genome.back().neuronIdOut, this->_genome.back().isOutput ? "true" : "false");
-		printf("%x:%x\n", this->_genome.back().weight);
+		printf("%x\n", this->_genome.back().weight);
 		puts("Creating neurons...");
 		this->_createNeurons(middleLayerSize);
 		puts("Generating links...");
@@ -130,7 +132,7 @@ namespace Trainer
 		if (stream.fail())
 			throw std::invalid_argument(path + ": " + strerror(errno));
 		puts("Loading...");
-		this->_genome.resize(genCount);
+		this->_genome.reserve(genCount);
 		for (int i = 0; i < genCount; i++) {
 			this->_genome.push_back({});
 			this->_genome.back().isInput = dist2(random);

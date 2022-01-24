@@ -21,7 +21,7 @@ namespace Trainer
 			unsigned short neuronIdOut;
 			short weight;
 		};
-		unsigned short data[4];
+		unsigned char data[1];
 	};
 #pragma pack(pop)
 

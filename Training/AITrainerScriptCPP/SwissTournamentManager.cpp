@@ -7,15 +7,15 @@
 #include "SwissTournamentManager.hpp"
 #include "Exceptions.hpp"
 
-//#ifdef _DEBUG
-//#define DISPLAY_PARAM true
-//#define SOUND_PARAM 10, 10
-//#define GAME_TPS 60
-//#else
+#ifdef _DEBUG
+#define DISPLAY_PARAM true
+#define SOUND_PARAM 10, 10
+#define GAME_TPS 60
+#else
 #define DISPLAY_PARAM false
 #define SOUND_PARAM 0, 0
 #define GAME_TPS 60000
-//#endif
+#endif
 
 namespace Trainer
 {

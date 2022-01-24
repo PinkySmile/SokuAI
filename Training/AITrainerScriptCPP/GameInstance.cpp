@@ -186,7 +186,9 @@ namespace Trainer
 		GuardedPtr<Packet> result;
 
 		if (this->_socket != INVALID_SOCKET) {
-			this->quit();
+			try {
+				this->quit();
+			} catch (...) {}
 			closesocket(this->_socket);
 			this->terminate();
 		}

@@ -112,7 +112,7 @@ static void fillState(const SokuLib::CharacterManager &source, const SokuLib::Ch
 	destination.frameCount = source.objectBase.frameCount;
 	destination.comboDamage = source.combo.damages;
 	destination.comboLimit = source.combo.limit;
-	destination.airBorne = source.objectBase.frameData.frameFlags.airborne;
+	destination.airBorne = source.objectBase.frameData->frameFlags.airborne;
 	destination.hp = source.objectBase.hp;
 	destination.airDashCount = source.airdashCount;
 	destination.spirit = source.currentSpirit;
@@ -150,7 +150,7 @@ static void fillState(const SokuLib::ObjectManager &object, const SokuLib::Chara
 	destination.relativePosOpponent.x = object.position.x - opponent.objectBase.position.x;
 	destination.relativePosOpponent.y = object.position.y - opponent.objectBase.position.y;
 	destination.action = object.action;
-	destination.imageID = object.image.number;
+	destination.imageID = object.image->number;
 }
 
 bool isFrame = false;
@@ -161,14 +161,24 @@ void __fastcall KeymapManagerSetInputs(SokuLib::KeymapManager *This)
 	if (SokuLib::sceneId != SokuLib::newSceneId) {
 		return;
 	}
-	if (begin && SokuLib::sceneId == SokuLib::SCENE_TITLE) {
-		begin = false;
+	if (SokuLib::sceneId == SokuLib::SCENE_TITLE) {
+		SokuLib::currentScene->to<SokuLib::Title>().menuInputHandler.pos = 3;
+		if (begin) {
+			begin = false;
+			memset(&This->input, 0, sizeof(This->input));
+			This->input.a = 1;
+			return;
+		}
+	}
+	if (SokuLib::sceneId == SokuLib::SCENE_SELECTSCENARIO) {
 		memset(&This->input, 0, sizeof(This->input));
-		This->input.a = 1;
+		This->input.b = 1;
+		return;
 	}
 	if (startRequested || gameFinished) {
 		memset(&This->input, 0, sizeof(This->input));
 		This->input.a = 1;
+		return;
 	}
 	if (isFrame) {
 		auto &battle = SokuLib::getBattleMgr();
@@ -186,23 +196,8 @@ void __fastcall KeymapManagerSetInputs(SokuLib::KeymapManager *This)
 		left = !left;
 		updateInput(*lastInput, *input);
 		memcpy(&This->input, lastInput, sizeof(*lastInput));
+		return;
 	}
-	//static bool lasts = false;
-	//if (SokuLib::sceneId == SokuLib::SCENE_SELECTCL || SokuLib::sceneId == SokuLib::SCENE_SELECTSV) {
-	//	memset(&This->input, 0, sizeof(This->input));
-	//	This->input.a = lasts;
-
-	//	lasts = !lasts;
-
-	//	SokuLib::leftPlayerInfo.character = SokuLib::CHARACTER_REMILIA;
-	//	SokuLib::leftPlayerInfo.palette = 0;
-	//	SokuLib::leftPlayerInfo.deck = 0;
-	//	SokuLib::rightPlayerInfo.character = SokuLib::CHARACTER_REMILIA;
-	//	SokuLib::rightPlayerInfo.palette = 5;
-	//	SokuLib::rightPlayerInfo.deck = 0;
-	//	*(unsigned *)(*(unsigned *)0x8A000C + 0x2438) = 13;// Stage
-	//	*(unsigned *)(*(unsigned *)0x8A000C + 0x244C) = 13;// Music
-	//}
 }
 
 int dummyFunction()

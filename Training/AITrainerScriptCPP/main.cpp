@@ -94,7 +94,7 @@ void loadGeneration(std::vector<std::unique_ptr<GeneticAI>> &ais, unsigned popSi
 				i,
 				NEURON_COUNT,
 				GENES_COUNT,
-				basePath + std::to_string(latest) + "_" + std::to_string(i) + ".ai"
+				basePath + std::to_string(latest + 1) + "_" + std::to_string(i) + ".ai"
 			));
 		} catch (std::exception &e) {
 			printf("Cannot load AI: %s. Creating dummy one.\n", e.what());
@@ -188,6 +188,8 @@ int main(int argc, char *argv[])
 	}
 	if (latest < 0)
 		latest = 0;
+	else
+		latest++;
 	nb = ceil(log2(ais.size()));
 	while (true) {
 		std::vector<BaseAI *> baseAis;
