@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <direct.h>
 #include <fstream>
+#include <algorithm>
 #include "Exceptions.hpp"
 #include "NeuronAi.hpp"
 
