@@ -7,6 +7,7 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 # SokuLib
 add_subdirectory(SokuLib)
 
+message("${TRAINING_FOLDER}")
 add_library(
 	SokuAITrainer
 	MODULE
@@ -15,6 +16,27 @@ add_library(
 )
 target_compile_definitions("SokuAITrainer" PRIVATE DIRECTINPUT_VERSION=0x0800 CURL_STATICLIB _CRT_SECURE_NO_WARNINGS $<$<CONFIG:Debug>:_DEBUG>)
 target_link_libraries(SokuAITrainer SokuLib shlwapi ws2_32)
+
+add_library(
+	SokuOnlinePlayer
+	MODULE
+	OnlineHostMod/main.cpp
+	OnlineHostMod/Network/Socket.cpp
+	OnlineHostMod/Network/Socket.hpp
+	Training/AITrainerScriptCPP/GeneticAI.cpp
+	Training/AITrainerScriptCPP/GeneticAI.hpp
+	Training/AITrainerScriptCPP/GenNeuron.cpp
+	Training/AITrainerScriptCPP/GenNeuron.hpp
+	Training/AITrainerScriptCPP/Neuron.cpp
+	Training/AITrainerScriptCPP/Neuron.hpp
+	Training/AITrainerScriptCPP/BaseAi.cpp
+	Training/AITrainerScriptCPP/BaseAi.hpp
+	Training/AITrainerScriptCPP/ObjectsNeuron.cpp
+	Training/AITrainerScriptCPP/ObjectsNeuron.hpp
+)
+target_include_directories("SokuOnlinePlayer" PRIVATE Training/AITrainerScriptCPP)
+target_compile_definitions("SokuOnlinePlayer" PRIVATE DIRECTINPUT_VERSION=0x0800 CURL_STATICLIB _CRT_SECURE_NO_WARNINGS $<$<CONFIG:Debug>:_DEBUG> TRAINING_FOLDER="${TRAINING_FOLDER}")
+target_link_libraries(SokuOnlinePlayer SokuLib shlwapi ws2_32)
 
 add_library(
 	SokuAIOfflinePlayer
@@ -44,7 +66,11 @@ add_library(
 	Training/AITrainerScriptCPP/NeuronAi.cpp
 	Training/AITrainerScriptCPP/NeuronAi.hpp
 	Training/AITrainerScriptCPP/Exceptions.cpp
-	Training/AITrainerScriptCPP/GeneticAI.cpp Training/AITrainerScriptCPP/GeneticAI.hpp Training/AITrainerScriptCPP/GenNeuron.cpp Training/AITrainerScriptCPP/GenNeuron.hpp)
+	Training/AITrainerScriptCPP/GeneticAI.cpp
+	Training/AITrainerScriptCPP/GeneticAI.hpp
+	Training/AITrainerScriptCPP/GenNeuron.cpp
+	Training/AITrainerScriptCPP/GenNeuron.hpp
+)
 target_link_libraries(NeuronAILib ws2_32 SokuLib)
 
 add_executable(
