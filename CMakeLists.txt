@@ -35,8 +35,8 @@ add_library(
 	Training/AITrainerScriptCPP/GameManager.hpp
 	Training/AITrainerScriptCPP/BaseAi.cpp
 	Training/AITrainerScriptCPP/BaseAi.hpp
-	Training/AITrainerScriptCPP/SwissTournamentManager.cpp
-	Training/AITrainerScriptCPP/SwissTournamentManager.hpp
+	Training/AITrainerScriptCPP/TournamentManager.cpp
+	Training/AITrainerScriptCPP/TournamentManager.hpp
 	Training/AITrainerScriptCPP/Neuron.cpp
 	Training/AITrainerScriptCPP/Neuron.hpp
 	Training/AITrainerScriptCPP/ObjectsNeuron.cpp

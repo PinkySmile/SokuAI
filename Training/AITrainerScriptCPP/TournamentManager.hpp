@@ -2,8 +2,8 @@
 // Created by PinkySmile on 22/05/2021.
 //
 
-#ifndef SOKUAI_SWISSTOURNAMENTMANAGER_HPP
-#define SOKUAI_SWISSTOURNAMENTMANAGER_HPP
+#ifndef SOKUAI_TOURNAMENTMANAGER_HPP
+#define SOKUAI_TOURNAMENTMANAGER_HPP
 
 
 #include <mutex>
@@ -93,7 +93,7 @@ namespace Trainer
 		void start();
 	};
 
-	class SwissTournamentManager {
+	class TournamentManager {
 	private:
 		unsigned _firstTo;
 		unsigned _inputDelay;
@@ -101,10 +101,11 @@ namespace Trainer
 		std::vector<std::unique_ptr<GameManager>> _gameManagers;
 
 		void _makeMatches(std::vector<PlayerEntry> &ais, std::vector<Match> &matches);
+		void _makeMatches(std::vector<std::reference_wrapper<PlayerEntry>> &ais, std::vector<Match> &matches);
 		void _playMatches(unsigned generation, unsigned round, unsigned maxRound, std::vector<Match> &matches);
 
 	public:
-		SwissTournamentManager(
+		TournamentManager(
 			unsigned gamePool,
 			unsigned short portStart,
 			const std::string &gamePath,
@@ -115,8 +116,9 @@ namespace Trainer
 		);
 
 		std::vector<PlayerEntry> playTournament(unsigned generation, const std::vector<BaseAI *> &ais, unsigned nbRounds);
+		std::vector<PlayerEntry> playGroupTournament(unsigned generation, const std::vector<BaseAI *> &ais, unsigned poolSize);
 	};
 }
 
 
-#endif //SOKUAI_SWISSTOURNAMENTMANAGER_HPP
+#endif //SOKUAI_TOURNAMENTMANAGER_HPP

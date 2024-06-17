@@ -10,7 +10,7 @@
 #include <fstream>
 #include <iostream>
 #include <direct.h>
-#include "SwissTournamentManager.hpp"
+#include "TournamentManager.hpp"
 #include "GeneticAI.hpp"
 
 using namespace Trainer;
@@ -157,8 +157,8 @@ std::mt19937 random;
 
 int main(int argc, char *argv[])
 {
-	if (argc < 8) {
-		printf("Usage: %s <game_path> <port_start> <nb_game_instances> <population_size> <input_delay> <middle_layer_size> <gene_count> <first_to> [<SWRSToys.ini>]\n", argv[0]);
+	if (argc < 10) {
+		printf("Usage: %s <game_path> <port_start> <nb_game_instances> <population_size> <input_delay> <middle_layer_size> <gene_count> <first_to> <pool_size> [<SWRSToys.ini>]\n", argv[0]);
 		return EXIT_FAILURE;
 	}
 
@@ -173,8 +173,9 @@ int main(int argc, char *argv[])
 	NEURON_COUNT = std::stoul(argv[6]);
 	GENES_COUNT = std::stoul(argv[7]);
 	unsigned ft = std::stoul(argv[8]);
-	const char *ini = argc == 10 ? argv[9] : nullptr;
-	SwissTournamentManager tournament(nb, port, client, inputDelay, 5 * 60 * 60, ft, ini);
+	unsigned ps = std::stoul(argv[9]);
+	const char *ini = argc == 11 ? argv[10] : nullptr;
+	TournamentManager tournament(nb, port, client, inputDelay, 0.5 * 60 * 60, ft, ini);
 	auto latest = getLatestGen(SokuLib::TRAINING_CHARACTER, SokuLib::TRAINING_CHARACTER);
 	std::vector<std::unique_ptr<GeneticAI>> ais;
 
@@ -190,7 +191,7 @@ int main(int argc, char *argv[])
 		latest = 0;
 	else
 		latest++;
-	nb = ceil(log2(ais.size()));
+	nb = ceil(log(ais.size()) / log(4));
 	while (true) {
 		std::vector<BaseAI *> baseAis;
 

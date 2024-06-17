@@ -331,17 +331,81 @@ namespace Trainer
 		try {
 			float sum = 0;
 			int neur = 0;
+			unsigned whitelist[]{
+				 0, //nothing
+				 1, //forward
+				 2, //backward
+				// 3, //block_low
+				// 4, //crouch
+				// 5, //forward_jump
+				// 6, //backward_jump
+				// 7, //neutral_jump
+				// 8, //forward_highjump
+				// 9, //backward_highjump
+				//10, //neutral_highjump
+				//11, //forward_dash
+				//12, //backward_dash
+				//13, //fly1
+				//14, //fly2
+				//15, //fly3
+				//16, //fly4
+				//17, //fly6
+				//18, //fly7
+				//19, //fly8
+				//20, //fly9
+				//21, //switch_to_card_1
+				//22, //switch_to_card_2
+				//23, //switch_to_card_3
+				//24, //switch_to_card_4
+				//25, //use_current_card
+				//26, //upgrade_skillcard
+				//27, //236b
+				//28, //236c
+				//29, //623b
+				//30, //623c
+				//31, //214b
+				//32, //214c
+				//33, //421b
+				//34, //421c
+				//35, //22b
+				//36, //22c
+				//37, //be1
+				//38, //be2
+				//39, //be4
+				//40, //be6
+				//41, //2b
+				//42, //3b
+				//43, //4b
+				//44, //5b
+				//45, //6b
+				//46, //66b
+				//47, //1c
+				//48, //2c
+				//49, //3c
+				//50, //4c
+				//51, //5c
+				//52, //6c
+				//53, //66c
+				//54, //1a
+				//55, //2a
+				//56, //3a
+				//57, //5a
+				//58, //6a
+				//59, //8a
+				//60, //66a
+				61, //4a
+			};
 
-			for (auto &neuron : this->_outNeurons)
-				if (neuron->getValue() > 0)
-					sum += neuron->getValue();
+			for (unsigned i : whitelist)
+				if (this->_outNeurons[i]->getValue() > 0)
+					sum += this->_outNeurons[i]->getValue();
 
 			std::uniform_real_distribution<float> dist(0, sum);
 
 			if (sum == 0)
-				return BaseAI::getAction(frame, isLeft, frameId);
+				return "nothing";//BaseAI::getAction(frame, isLeft, frameId);
 			sum = dist(random);
-			for (int i = 0; i < BaseAI::actions.size(); i++) {
+			for (unsigned i : whitelist) {
 				if (this->_outNeurons[i]->getValue() <= 0)
 					continue;
 				if (sum <= this->_outNeurons[i]->getValue())

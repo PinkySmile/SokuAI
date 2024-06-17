@@ -30,6 +30,7 @@ namespace Trainer
 		OPCODE_SET_HEALTH,
 		OPCODE_SET_POSITION,
 		OPCODE_SET_WEATHER,
+		OPCODE_RESTRICT_MOVES,
 	};
 
 	enum WinnerSide : unsigned char {
@@ -209,6 +210,12 @@ namespace Trainer
 		bool freeze;
 	};
 
+	struct RestrictMovesPacket {
+		Opcode op;
+		unsigned char nb;
+		unsigned short moves[0];
+	};
+
 	union Packet {
 		Opcode op;
 		HelloPacket hello;
@@ -224,6 +231,7 @@ namespace Trainer
 		SetHealthPacket setHealth;
 		SetPositionPacket setPosition;
 		SetWeatherPacket setWeather;
+		RestrictMovesPacket restrictMoves;
 	};
 #pragma pack(pop)
 }

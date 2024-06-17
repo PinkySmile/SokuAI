@@ -13,7 +13,11 @@ namespace Trainer
 	{
 		while (true) {
 			try {
-				return this->_gameInstance.startGame(params);
+				auto state = this->_gameInstance.startGame(params);
+
+				// Footsies
+				this->_gameInstance.setWeather(SokuLib::WEATHER_CLEAR, 0, true);
+				return state;
 			} catch (const ProtocolError &e) {
 				if (e.getCode() != ERROR_STILL_PLAYING)
 					throw;
@@ -42,6 +46,14 @@ namespace Trainer
 		this->_gameInstance.setDisplayMode(this->_hasDisplay);
 		this->_gameInstance.setGameSpeed(this->_tps);
 		this->_gameInstance.setGameVolume(this->_bgmVolume, this->_sfxVolume);
+		// These are the moves that the AI can do by mistake, and we don't want that
+		this->_gameInstance.restrictMoves({
+			SokuLib::ACTION_FORWARD_DASH,
+			SokuLib::ACTION_BACKDASH,
+			SokuLib::ACTION_6A,
+			SokuLib::ACTION_5A,
+			SokuLib::ACTION_f5A
+		});
 	}
 
 	GameManager::GameResult GameManager::runOnce(const GameInstance::StartGameParams &params, unsigned int frameTimout, unsigned int inputDelay, unsigned int maxCrashes)
@@ -65,6 +77,8 @@ namespace Trainer
 				rightInputs.push_back(this->rightAi->getInputs(state, false, frameTimout));
 
 				state = this->_gameInstance.tick({leftInputs.front(), rightInputs.front()});
+				if (state.left.hp == 10000 && state.right.hp == 10000)
+					this->_gameInstance.setHealth(400, 400);
 				leftInputs.pop_front();
 				rightInputs.pop_front();
 			}
@@ -164,10 +178,13 @@ namespace Trainer
 			if (swap) {
 				auto old = this->rightAi;
 				auto oldParams = params.right;
+				auto oldScore = leftWins;
 
 				this->rightAi = this->leftAi;
 				this->leftAi = old;
 
+				leftWins = rightWins;
+				rightWins = oldScore;
 				params.right = params.left;
 				params.left = oldParams;
 			}

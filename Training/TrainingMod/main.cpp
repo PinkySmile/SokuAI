@@ -36,6 +36,7 @@ static bool gameFinished = false;
 static bool displayed = true;
 static bool begin = true;
 static bool cancel = false;
+static std::vector<unsigned short> blacklist;
 
 static bool startRequested = false;
 volatile bool inputsReceived = false;
@@ -325,7 +326,7 @@ static bool isDeckValid(SokuLib::Character chr, const unsigned char (&deck)[20])
 
 static bool verifyStartData(const Trainer::StartGamePacket &packet)
 {
-	if (SokuLib::sceneId != SokuLib::SCENE_TITLE)
+	if (SokuLib::sceneId != SokuLib::SCENE_TITLE || begin)
 		return sendError(Trainer::ERROR_STILL_PLAYING), false;
 	if (packet.stageId > 19)
 		return sendError(Trainer::ERROR_INVALID_STAGE), false;
@@ -433,6 +434,14 @@ static void handlePacket(const Trainer::Packet &packet, unsigned int size)
 		SokuLib::activeWeather = SokuLib::WEATHER_CLEAR;
 		SokuLib::weatherCounter = 999;
 		setWeather = true;
+		sendOpcode(Trainer::OPCODE_OK);
+		return;
+	case Trainer::OPCODE_RESTRICT_MOVES:
+		if (size < 2 || size != packet.restrictMoves.nb * 2 + 2)
+			return sendError(Trainer::ERROR_INVALID_PACKET);
+		blacklist.clear();
+		blacklist.reserve(packet.restrictMoves.nb);
+		blacklist.insert(blacklist.begin(), packet.restrictMoves.moves, packet.restrictMoves.moves + packet.restrictMoves.nb);
 		sendOpcode(Trainer::OPCODE_OK);
 		return;
 	case Trainer::OPCODE_ERROR:
@@ -594,6 +603,16 @@ int __fastcall CBattle_OnProcess(SokuLib::Battle *This) {
 		isFrame = true;
 		int ret = (This->*s_origCBattle_OnProcess)();
 		isFrame = false;
+		if (std::find(blacklist.begin(), blacklist.end(), battle.leftCharacterManager.objectBase.action) != blacklist.end()) {
+			printf("Restrict action %i for player1\n", battle.leftCharacterManager.objectBase.action);
+			battle.leftCharacterManager.objectBase.action = SokuLib::ACTION_IDLE;
+			battle.leftCharacterManager.objectBase.animate();
+		}
+		if (std::find(blacklist.begin(), blacklist.end(), battle.rightCharacterManager.objectBase.action) != blacklist.end()) {
+			printf("Restrict action %i for player2\n", battle.rightCharacterManager.objectBase.action);
+			battle.rightCharacterManager.objectBase.action = SokuLib::ACTION_IDLE;
+			battle.rightCharacterManager.objectBase.animate();
+		}
 		if (!gameFinished) {
 			size_t allocSize = sizeof(Trainer::GameFramePacket) + (battle.leftCharacterManager.objects.list.size + battle.rightCharacterManager.objects.list.size) * sizeof(Trainer::Object);
 			char *buffer = new char[allocSize];

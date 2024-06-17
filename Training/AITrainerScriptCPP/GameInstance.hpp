@@ -53,6 +53,7 @@ namespace Trainer
 		void setPositions(SokuLib::Vector2f left, SokuLib::Vector2f right);
 		void setHealth(unsigned short left, unsigned short right);
 		void setWeather(SokuLib::Weather weather, int timer, bool freezeTimer = false);
+		void restrictMoves(std::vector<SokuLib::Action> blackList);
 		DWORD terminate();
 		DWORD getExitCode();
 	private:

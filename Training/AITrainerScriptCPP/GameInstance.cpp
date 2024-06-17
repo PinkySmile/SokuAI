@@ -4,6 +4,7 @@
 
 #include "GameInstance.hpp"
 #include "Exceptions.hpp"
+#include "../TrainingMod/Packet.hpp"
 
 namespace Trainer
 {
@@ -424,5 +425,22 @@ namespace Trainer
 
 		GetExitCodeProcess(this->_processInformation.hProcess, &result);
 		return result;
+	}
+
+	void GameInstance::restrictMoves(std::vector<SokuLib::Action> blackList)
+	{
+		void *buffer = malloc(2 + blackList.size() * 2);
+		auto *packet = reinterpret_cast<RestrictMovesPacket *>(buffer);
+		GuardedPtr<Packet> result;
+
+		packet->op = OPCODE_RESTRICT_MOVES;
+		packet->nb = blackList.size();
+		for (unsigned i = 0; i < blackList.size(); i++)
+			packet->moves[i] = blackList[i];
+		send(this->_socket, reinterpret_cast<char *>(packet), 2 + blackList.size() * 2, 0);
+		free(buffer);
+		result = _recvPacket(this->_socket);
+		if (result->op == OPCODE_ERROR)
+			throw ProtocolError(result->error.error);
 	}
 }

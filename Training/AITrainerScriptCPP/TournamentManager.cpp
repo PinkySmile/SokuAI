@@ -4,7 +4,8 @@
 
 #include <numeric>
 #include <iostream>
-#include "SwissTournamentManager.hpp"
+#include <functional>
+#include "TournamentManager.hpp"
 #include "Exceptions.hpp"
 
 #ifdef _DEBUG
@@ -208,16 +209,25 @@ namespace Trainer
 		});
 	}
 
-	void SwissTournamentManager::_makeMatches(std::vector<PlayerEntry> &ais, std::vector<Match> &matches)
+	void TournamentManager::_makeMatches(std::vector<PlayerEntry> &ais, std::vector<Match> &matches)
+	{
+		std::vector<std::reference_wrapper<PlayerEntry>> _ais;
+
+		_ais.reserve(ais.size());
+		for (auto &ai : ais)
+			_ais.emplace_back(ai);
+		this->_makeMatches(_ais, matches);
+	}
+
+	void TournamentManager::_makeMatches(std::vector<std::reference_wrapper<PlayerEntry>> &ais, std::vector<Match> &matches)
 	{
 		std::map<float, std::vector<PlayerEntry *>> pools;
 		PlayerEntry *leftover = nullptr;
 
-		matches.clear();
-		matches.reserve(ais.size() / 2);
+		matches.reserve(matches.size() + ais.size() / 2);
 		puts("Creating match list");
 		for (auto &ai : ais)
-			pools[ai.score].push_back(&ai);
+			pools[ai.get().score].push_back(&ai.get());
 		for (auto &pool : pools) {
 			if (leftover)
 				pool.second.push_back(leftover);
@@ -238,7 +248,7 @@ namespace Trainer
 		}
 	}
 
-	void SwissTournamentManager::_playMatches(unsigned generation, unsigned round, unsigned maxRound, std::vector<Match> &matches)
+	void TournamentManager::_playMatches(unsigned generation, unsigned round, unsigned maxRound, std::vector<Match> &matches)
 	{
 		std::vector<GameThread> threads;
 		std::mutex mutex;
@@ -252,7 +262,7 @@ namespace Trainer
 			thread.join();
 	}
 
-	SwissTournamentManager::SwissTournamentManager(
+	TournamentManager::TournamentManager(
 		unsigned int gamePool,
 		unsigned short portStart,
 		const std::string &gamePath,
@@ -278,7 +288,7 @@ namespace Trainer
 			thread.join();
 	}
 
-	std::vector<PlayerEntry> SwissTournamentManager::playTournament(unsigned generation, const std::vector<BaseAI *> &ais, unsigned int nbRounds)
+	std::vector<PlayerEntry> TournamentManager::playTournament(unsigned generation, const std::vector<BaseAI *> &ais, unsigned int nbRounds)
 	{
 		std::vector<PlayerEntry> allEntries;
 
@@ -293,7 +303,31 @@ namespace Trainer
 
 			printf("Round %i start !\n", i + 1);
 			this->_makeMatches(allEntries, matches);
-			this->_playMatches(generation, i  +1, nbRounds, matches);
+			this->_playMatches(generation, i + 1, nbRounds, matches);
+		}
+		return allEntries;
+	}
+
+	std::vector<PlayerEntry> TournamentManager::playGroupTournament(unsigned int generation, const std::vector<BaseAI *> &ais, unsigned int poolSize)
+	{
+		auto nb = std::ceil(std::log2(poolSize));
+		auto total = std::log(ais.size()) / std::log(4) * nb;
+		std::vector<PlayerEntry> allEntries;
+		std::vector<std::vector<std::reference_wrapper<PlayerEntry>>> pools;
+		std::vector<std::vector<std::reference_wrapper<PlayerEntry>>> newPools;
+		int i = 0;
+
+		allEntries.reserve(ais.size());
+		for (auto ai : ais)
+			allEntries.push_back({ai, 0, 0, {}});
+		printf("There are %u players and %f rounds with pools of size %u\n", allEntries.size(), total, poolSize);
+		while (pools.size() != 1) {
+			std::vector<Match> matches;
+
+			printf("Round %i start !\n", i + 1);
+			this->_makeMatches(allEntries, matches);
+			this->_playMatches(generation, i + 1, total, matches);
+			i++;
 		}
 		return allEntries;
 	}
