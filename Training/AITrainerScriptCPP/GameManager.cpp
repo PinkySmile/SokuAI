@@ -3,9 +3,12 @@
 //
 
 #include <list>
+#include <thread>
 #include "BaseAi.hpp"
 #include "GameManager.hpp"
 #include "Exceptions.hpp"
+
+#define MAX_HP 400
 
 namespace Trainer
 {
@@ -21,7 +24,7 @@ namespace Trainer
 			} catch (const ProtocolError &e) {
 				if (e.getCode() != ERROR_STILL_PLAYING)
 					throw;
-				Sleep(100);
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		}
 	}
@@ -77,8 +80,10 @@ namespace Trainer
 				rightInputs.push_back(this->rightAi->getInputs(state, false, frameTimout));
 
 				state = this->_gameInstance.tick({leftInputs.front(), rightInputs.front()});
+#ifdef MAX_HP
 				if (state.left.hp == 10000 && state.right.hp == 10000)
-					this->_gameInstance.setHealth(400, 400);
+					this->_gameInstance.setHealth(MAX_HP, MAX_HP);
+#endif
 				leftInputs.pop_front();
 				rightInputs.pop_front();
 			}

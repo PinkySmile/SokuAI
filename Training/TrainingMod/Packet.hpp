@@ -14,23 +14,24 @@
 namespace Trainer
 {
 	enum Opcode : unsigned char {
-		OPCODE_HELLO,
-		OPCODE_GOODBYE,
-		OPCODE_SPEED,
-		OPCODE_DISPLAY,
-		OPCODE_SOUND,
-		OPCODE_START_GAME,
-		OPCODE_FAULT,
-		OPCODE_ERROR,
-		OPCODE_GAME_FRAME,
-		OPCODE_GAME_INPUTS,
-		OPCODE_GAME_CANCEL,
-		OPCODE_GAME_ENDED,
-		OPCODE_OK,
-		OPCODE_SET_HEALTH,
-		OPCODE_SET_POSITION,
-		OPCODE_SET_WEATHER,
-		OPCODE_RESTRICT_MOVES,
+		/* 0  */ OPCODE_HELLO,
+		/* 1  */ OPCODE_GOODBYE,
+		/* 2  */ OPCODE_SPEED,
+		/* 3  */ OPCODE_DISPLAY,
+		/* 4  */ OPCODE_SOUND,
+		/* 5  */ OPCODE_VS_PLAYER_START_GAME,
+		/* 6  */ OPCODE_FAULT,
+		/* 7  */ OPCODE_ERROR,
+		/* 8  */ OPCODE_GAME_FRAME,
+		/* 9  */ OPCODE_GAME_INPUTS,
+		/* 10 */ OPCODE_GAME_CANCEL,
+		/* 11 */ OPCODE_GAME_ENDED,
+		/* 12 */ OPCODE_OK,
+		/* 13 */ OPCODE_SET_HEALTH,
+		/* 14 */ OPCODE_SET_POSITION,
+		/* 15 */ OPCODE_SET_WEATHER,
+		/* 16 */ OPCODE_RESTRICT_MOVES,
+		/* 17 */ OPCODE_VS_COM_START_GAME,
 	};
 
 	enum Errors : unsigned char {
@@ -101,50 +102,48 @@ namespace Trainer
 	};
 
 	struct Object {
-		SokuLib::Direction direction;
-		SokuLib::Vector2f relativePosMe;
-		SokuLib::Vector2f relativePosOpponent;
-		SokuLib::Action action;
-		unsigned imageID;
+		char direction;
+		SokuLib::Vector2f position;
+		unsigned short action;
+		unsigned short sequence;
+		unsigned short hitStop;
+		unsigned short imageID;
 	};
 
 	struct CharacterState {
-		SokuLib::Direction direction;
-		SokuLib::Vector2f opponentRelativePos;
-		float distToBackCorner;
-		float distToFrontCorner;
-		float distToGround;
-		SokuLib::Action action;
-		unsigned short actionBlockId;
-		unsigned short animationCounter;
-		unsigned short animationSubFrame;
+		char direction;
+		SokuLib::Vector2f position;
+		unsigned short action;
+		unsigned short sequence;
+		unsigned short pose;
+		unsigned short poseFrame;
 		unsigned int frameCount;
 		unsigned short comboDamage;
 		unsigned short comboLimit;
 		bool airBorne;
+		unsigned short timeStop;
+		unsigned short hitStop;
 		unsigned short hp;
 		unsigned char airDashCount;
 		unsigned short spirit;
 		unsigned short maxSpirit;
 		unsigned short untech;
 		unsigned short healingCharm;
+		unsigned short confusion;
 		unsigned short swordOfRapture;
 		unsigned char score;
-		unsigned char hand[5];
+		std::pair<unsigned char, unsigned char> hand[5];
 		unsigned short cardGauge;
 		SokuLib::Skill skills[15];
 		unsigned char fanLevel;
+		unsigned char rodsLevel;
+		unsigned char booksLevel;
+		unsigned char dollLevel;
+		unsigned char dropLevel;
 		unsigned short dropInvulTimeLeft;
-		unsigned short superArmorTimeLeft;
 		unsigned short superArmorHp;
-		unsigned short milleniumVampireTimeLeft;
-		unsigned short philosoferStoneTimeLeft;
-		unsigned short sakuyasWorldTimeLeft;
-		unsigned short privateSquareTimeLeft;
-		unsigned short orreriesTimeLeft;
-		unsigned short mppTimeLeft;
-		unsigned short kanakoCooldown;
-		unsigned short suwakoCooldown;
+		unsigned short imageID;
+		unsigned char characterSpecificData[20];
 		unsigned char objectCount;
 	};
 
@@ -152,8 +151,8 @@ namespace Trainer
 		Opcode op;
 		CharacterState leftState;
 		CharacterState rightState;
-		SokuLib::Weather displayedWeather;
-		SokuLib::Weather activeWeather;
+		char displayedWeather;
+		char activeWeather;
 		unsigned short weatherTimer;
 		Object objects[0];
 	};

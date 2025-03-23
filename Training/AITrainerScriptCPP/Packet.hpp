@@ -6,7 +6,13 @@
 #define SOKUAI_PACKET_HPP
 
 
+#ifdef _WIN32
 #include <SokuLib.hpp>
+#else
+#include <Action.hpp>
+#include <Weather.hpp>
+#include "winDefines.hpp"
+#endif
 
 #define PACKET_HELLO_MAGIC_NUMBER 0xF56E9D2A
 

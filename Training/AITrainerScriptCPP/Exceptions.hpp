@@ -6,7 +6,9 @@
 #define SOKUAI_EXCEPTIONS_HPP
 
 
+#include <cstring>
 #include <string>
+#include <array>
 #include <exception>
 #include "Packet.hpp"
 
@@ -86,6 +88,14 @@ namespace Trainer
 		InvalidPacketError() : Exception("The received packet is malformed") {};
 	};
 
+	class LinuxException : public Exception {
+	public:
+		LinuxException(const std::string &&fct) :
+			Exception("A call to " + fct + " failed with code " + std::to_string(errno) + ": " + strerror(errno))
+		{};
+	};
+
+#ifdef _WIN32
 	class WSAErrorException : public Exception {
 	public:
 		WSAErrorException(const std::string &&fct) :
@@ -139,6 +149,7 @@ namespace Trainer
 			return result;
 		}
 	};
+#endif
 
 	class UnexpectedPacketError : public Exception {
 	private:

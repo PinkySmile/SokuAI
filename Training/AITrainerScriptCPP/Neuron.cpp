@@ -2,10 +2,17 @@
 // Created by PinkySmile on 22/05/2021.
 //
 
-#include <iostream>
+#include <cmath>
 #include <sstream>
 #include <fstream>
+#include <iostream>
+#include <algorithm>
+#ifdef _WIN32
 #include <Windows.h>
+#else
+using std::max;
+using std::min;
+#endif
 #include "Neuron.hpp"
 
 #define LINK_BREAK_CHANCE_NUM 1
@@ -58,7 +65,7 @@ namespace Trainer
 			std::getline(stream, weight, ',');
 			std::getline(stream, id, ',');
 			this->_links.push_back({
-				std::stoul(id),
+				(unsigned)std::stoul(id),
 				std::stof(weight),
 				nullptr
 			});
@@ -93,7 +100,7 @@ namespace Trainer
 				link.weight += std::exp(rand() / -2.f / RAND_MAX) / 4;
 			else
 				link.weight -= std::exp(rand() / -2.f / RAND_MAX) / 4;
-			link.weight = max(min(1, link.weight), -1);
+			link.weight = max(min(1.f, link.weight), -1.f);
 			if (!this->_links.empty() && rand() % LINK_BREAK_CHANCE_DEN < LINK_BREAK_CHANCE_NUM) {
 				this->_links.erase(this->_links.begin() + i);
 				i--;
@@ -132,7 +139,7 @@ namespace Trainer
 
 		for (auto &link : this->_links)
 			result += link.weight * link.neuron->getValue();
-		return min(max(result + this->_value, -1), 1);
+		return min(max(result + this->_value, -1.f), 1.f);
 	}
 
 	std::set<unsigned> Neuron::getDependencies()

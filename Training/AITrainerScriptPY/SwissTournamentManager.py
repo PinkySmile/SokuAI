@@ -62,8 +62,8 @@ class GameThread(threading.Thread):
             try:
                 self.update_match_ais(match, self.get_match_winner(
                     self.game.run(
-                        self.game.left_ai.get_prefered_character(),
-                        self.game.right_ai.get_prefered_character(),
+                        self.game.left_ai.get_params(),
+                        self.game.right_ai.get_params(),
                         self.stage,
                         self.music,
                         self.nb,

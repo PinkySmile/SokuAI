@@ -2,8 +2,18 @@
 // Created by PinkySmile on 22/05/2021.
 //
 
-#include <cstdlib>
+#ifdef _WIN32
 #include <direct.h>
+#define mkdir(path, mode) _mkdir(path)
+#define SEPARATOR "\\"
+#else
+#include <unistd.h>
+#include <sys/stat.h>
+#include "winDefines.hpp"
+#define SEPARATOR "/"
+#endif
+#include <filesystem>
+#include <cstdlib>
 #include <fstream>
 #include <algorithm>
 #include "Exceptions.hpp"
@@ -84,7 +94,7 @@ namespace Trainer
 		"Random"
 	};
 
-	const std::string NeuronAI::_path = std::string(__argv[0]).substr(0, std::string(__argv[0]).find_last_of('\\')) + "\\generated\\";
+	const std::string NeuronAI::_path = std::string(__argv[0]).substr(0, std::string(__argv[0]).find_last_of(*SEPARATOR)) + SEPARATOR "generated" SEPARATOR;
 
 	void NeuronAI::_createBaseNeurons()
 	{
@@ -105,7 +115,7 @@ namespace Trainer
 	{
 	}
 
-	int NeuronAI::getLatestGen(SokuLib::Character myChar, SokuLib::Character opChar)
+	/*int NeuronAI::getLatestGen(SokuLib::Character myChar, SokuLib::Character opChar)
 	{
 		int gen = 0;
 		WIN32_FIND_DATAA data;
@@ -119,16 +129,16 @@ namespace Trainer
 			} catch (...) {}
 		} while (FindNextFileA(handle, &data));
 		return gen;
-	}
+	}*/
 
 	void NeuronAI::createRequiredPath(SokuLib::Character myChar, SokuLib::Character opChar)
 	{
-		_mkdir(NeuronAI::_path.c_str());
-		_mkdir((NeuronAI::_path + chrNames[myChar] + " vs " + chrNames[opChar]).c_str());
+		mkdir(NeuronAI::_path.c_str(), 0755);
+		mkdir((NeuronAI::_path + chrNames[myChar] + " vs " + chrNames[opChar]).c_str(), 0755);
 		if (this->_generation <= 0)
-			_mkdir((NeuronAI::_path + chrNames[myChar] + " vs " + chrNames[opChar] + "\\0").c_str());
+			mkdir((NeuronAI::_path + chrNames[myChar] + " vs " + chrNames[opChar] + SEPARATOR "0").c_str(), 0755);
 		else
-			_mkdir((NeuronAI::_path + chrNames[myChar] + " vs " + chrNames[opChar] + "\\" + std::to_string(this->_generation)).c_str());
+			mkdir((NeuronAI::_path + chrNames[myChar] + " vs " + chrNames[opChar] + SEPARATOR + std::to_string(this->_generation)).c_str(), 0755);
 	}
 
 	void NeuronAI::init(SokuLib::Character myChar, SokuLib::Character opChar)
@@ -370,9 +380,9 @@ namespace Trainer
 		int result = round((value + 1) * BaseAI::actions.size() / 2.f - 0.5f);
 
 		try {
-			return BaseAI::actions.at(min(BaseAI::actions.size() - 1, max(0, result)));
+			return BaseAI::actions.at(min((int)BaseAI::actions.size() - 1, max(0, result)));
 		} catch (std::exception &e) {
-			printf("%u %f %i\n", min(BaseAI::actions.size() - 1, max(0, result)), value, result);
+			printf("%u %f %i\n", min((int)BaseAI::actions.size() - 1, max(0, result)), value, result);
 			throw;
 		}
 	}

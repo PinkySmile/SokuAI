@@ -7,7 +7,6 @@
 
 
 #include <string>
-#include <SokuLib.hpp>
 #include "BaseAi.hpp"
 #include "ObjectsNeuron.hpp"
 
@@ -25,7 +24,7 @@ namespace Trainer
 		void _createBaseNeurons();
 
 	public:
-		static const char *NeuronAI::chrNames[21];
+		static const char *chrNames[21];
 		static const std::string _path;
 		static int getLatestGen(SokuLib::Character myChar, SokuLib::Character opChar);
 

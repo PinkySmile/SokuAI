@@ -5,7 +5,12 @@
 #include <sstream>
 #include <iostream>
 #include <fstream>
+#ifdef _WIN32
 #include <windows.h>
+#else
+using std::max;
+using std::min;
+#endif
 #include "ObjectsNeuron.hpp"
 
 namespace Trainer
@@ -46,7 +51,7 @@ namespace Trainer
 				weight += std::exp(rand() / -2.f / RAND_MAX) / 4;
 			else
 				weight -= std::exp(rand() / -2.f / RAND_MAX) / 4;
-			weight = max(min(1, weight), -1);
+			weight = max(min(1.f, weight), -1.f);
 		}
 		if ((rand() & 1) == 0)
 			this->_value += std::exp(rand() / -2.f / RAND_MAX) / 4;

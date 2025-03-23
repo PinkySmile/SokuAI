@@ -2,13 +2,28 @@
 // Created by PinkySmile on 06/12/2021.
 //
 
+#define random __random
 #include <fstream>
 #include <random>
 #include "GeneticAI.hpp"
 #include "GenNeuron.hpp"
+#undef random
 
+#undef assert
 #undef max
 #undef min
+
+#ifdef __GNUC__
+#define FCT_NAME __PRETTY_FUNCTION__
+#elif defined(_MSC_VER)
+#define FCT_NAME __FUNCSIG__
+#else
+#define FCT_NAME __func__
+#endif
+
+#define assert(expr) if (!(expr)) fprintf(stderr, "Assertion " #expr " failed in %s in " __FILE__ " line %i\n", FCT_NAME, __LINE__), abort()
+
+#define MAX_NEURON_ID 0x3FF
 
 #define PALETTE_COUNT 74
 #define STATE_NEURONS_COUNT (38 + 3 + 14)
@@ -74,22 +89,18 @@ namespace Trainer
 		_generation(generation),
 		_id(id)
 	{
+		assert(middleLayerSize < MAX_NEURON_ID);
 		printf("Creating child AI from %s and %s\n", parent1.toString().c_str(), parent2.toString().c_str());
 		assert(parent1._genome.size() == parent2._genome.size());
 		this->_genome.reserve(parent1._genome.size());
-		puts("Generating genome...");
 		for (int i = 0; i < parent1._genome.size(); i++) {
 			this->_genome.push_back((dist2(random) ? parent1 : parent2)._genome[i]);
 			if (dist5(random) == 0)
 				this->_genome.back().data[dist4(random)] ^= (1 << dist3(random));
 		}
-		puts("Creating neurons...");
 		this->_createNeurons(middleLayerSize);
-		puts("Generating links...");
 		this->_generateLinks();
-		puts("Making palette...");
 		this->_palette = this->_calculatePalette();
-		puts("Done!");
 	}
 
 	GeneticAI::GeneticAI(unsigned generation, unsigned id, unsigned middleLayerSize, unsigned int genCount) :
@@ -97,6 +108,7 @@ namespace Trainer
 		_generation(generation),
 		_id(id)
 	{
+		assert(middleLayerSize < MAX_NEURON_ID);
 		printf("Creating new AI with %i neurons and %i genes\n", middleLayerSize, genCount);
 		this->_genome.reserve(genCount);
 		for (int i = 0; i < genCount; i++) {
@@ -107,17 +119,9 @@ namespace Trainer
 			this->_genome.back().neuronIdOut = dist1(random);
 			this->_genome.back().weight = dist1(random);
 		}
-		printf("%X %X %X %X %X (%i)\n", this->_genome.back().data[0], this->_genome.back().data[1], this->_genome.back().data[2], this->_genome.back().data[3], this->_genome.back().data[4], sizeof(this->_genome.back()));
-		printf("%x:%s\n", this->_genome.back().neuronIdIn, this->_genome.back().isInput ? "true" : "false");
-		printf("%x:%s\n", this->_genome.back().neuronIdOut, this->_genome.back().isOutput ? "true" : "false");
-		printf("%x\n", this->_genome.back().weight);
-		puts("Creating neurons...");
 		this->_createNeurons(middleLayerSize);
-		puts("Generating links...");
 		this->_generateLinks();
-		puts("Making palette...");
 		this->_palette = this->_calculatePalette();
-		puts("Done!");
 	}
 
 	GeneticAI::GeneticAI(unsigned int generation, unsigned int id, unsigned int middleLayerSize, unsigned int genCount, const std::string &path) :
@@ -125,13 +129,13 @@ namespace Trainer
 		_generation(generation),
 		_id(id)
 	{
+		assert(middleLayerSize < MAX_NEURON_ID);
 		printf("Loading AI from %s\n", path.c_str());
 
 		std::ifstream stream{path, std::ifstream::binary};
 
 		if (stream.fail())
 			throw std::invalid_argument(path + ": " + strerror(errno));
-		puts("Loading...");
 		this->_genome.reserve(genCount);
 		for (int i = 0; i < genCount; i++) {
 			this->_genome.push_back({});
@@ -142,13 +146,9 @@ namespace Trainer
 			this->_genome.back().weight = dist1(random);
 		}
 		stream.read(reinterpret_cast<char *>(this->_genome.data()), this->_genome.size() * sizeof(*this->_genome.data()));
-		puts("Creating neurons...");
 		this->_createNeurons(middleLayerSize);
-		puts("Generating links...");
 		this->_generateLinks();
-		puts("Making palette...");
 		this->_palette = this->_calculatePalette();
-		puts("Done!");
 	}
 
 	void GeneticAI::save(const std::string &path) const
@@ -200,7 +200,7 @@ namespace Trainer
 	const char *GeneticAI::getAction(const GameInstance::GameFrame &frame, bool isLeft, unsigned int frameId)
 	{
 		if (this->_noWire)
-			return BaseAI::getAction(frame, isLeft, frameId);
+			return "nothing";
 
 		auto &myFrame = isLeft ? frame.left : frame.right;
 		auto &opFrame = !isLeft ? frame.left : frame.right;
@@ -413,6 +413,7 @@ namespace Trainer
 				sum -= this->_outNeurons[i]->getValue();
 				neur = i;
 			}
+			printf("Action %i (%s)\n", neur, BaseAI::actions[neur]);
 			return BaseAI::actions[neur];
 			//return {
 			//	this->_outNeurons[0]->getValue() >= 0.5,
@@ -461,8 +462,8 @@ namespace Trainer
 	void GeneticAI::_generateLinks()
 	{
 		for (auto &gene : this->_genome) {
-			gene.neuronIdIn  &= 0x1FF;
-			gene.neuronIdOut &= 0x1FF;
+			gene.neuronIdIn  &= MAX_NEURON_ID;
+			gene.neuronIdOut &= MAX_NEURON_ID;
 			//printf("%s%i -> %s%i (", gene.isInput ? "I" : "N", gene.neuronIdIn, gene.isOutput ? "O" : "N", gene.neuronIdOut);
 			//fflush(stdout);
 
@@ -484,7 +485,6 @@ namespace Trainer
 		}
 		if (this->_noWire)
 			printf("%s: No output neuron connected.\n", this->toString().c_str());
-		puts("Done");
 	}
 
 	int GeneticAI::_calculatePalette()
@@ -499,7 +499,7 @@ namespace Trainer
 
 	Neuron *GeneticAI::getInNeuron(const Gene &gene) const
 	{
-		auto id = gene.neuronIdIn & 0x1FF;
+		auto id = gene.neuronIdIn & MAX_NEURON_ID;
 		auto &arr = (gene.isInput ? this->_inNeurons : this->_neurons);
 
 		if (id >= arr.size())
@@ -509,7 +509,7 @@ namespace Trainer
 
 	Neuron *GeneticAI::getOutNeuron(const Gene &gene)
 	{
-		auto id = gene.neuronIdOut & 0x1FF;
+		auto id = gene.neuronIdOut & MAX_NEURON_ID;
 		auto &arr = (gene.isOutput ? this->_outNeurons : this->_neurons);
 
 		if (id >= arr.size())

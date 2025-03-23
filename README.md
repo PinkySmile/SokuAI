@@ -55,7 +55,8 @@ Byte 1: Music volume (0-100)
 
 Changes the volume of the game. Defaults to the values set in the game configuration.
 
-### START_GAME (0x05) Server only
+### START_VS_PLAYER_GAME (0x05) Server only
+### START_VS_COM_GAME (0x17) Server only
 Data size: 52 bytes
 
 - Byte 0: Stage ID (0 - 19)
@@ -85,6 +86,7 @@ Possible errors:
 Data size: 4 bytes
 
 - Bytes 0 - 3: Faulting address
+- Bytes 4 - 7: Exception code
 
 The client crashed and cannot continue execution.
 
@@ -136,63 +138,64 @@ The hello packet hasn't yet been successfully processed
 A game is still being played or the game is not ready to start a new game
 
 ### GAME_FRAME (0x08) Client only
-Data size: 206 + nbObjects * 23
+Data size: 215 + nbObjects * 17
 
-- Bytes 0 - 97: Left character state;
-- Bytes 98 - 195: Right character state;
-- Bytes 196 - 199: Displayed weather (List [here](https://github.com/SokuDev/SokuLib/blob/51486a0c400201313f6afff1155e8f84bbb9d809/src/Core/Weather.hpp#L11);
-- Bytes 200 - 203: Active weather (List [here](https://github.com/SokuDev/SokuLib/blob/51486a0c400201313f6afff1155e8f84bbb9d809/src/Core/Weather.hpp#L11));
-- Bytes 204 - 205: Weather timer (0 - 999);
-- Bytes 206 - N: Other objects
+- Bytes 0 - 104: Left character state;
+- Bytes 105 - 209: Right character state;
+- Byte 210: Displayed weather (List [here](https://github.com/SokuDev/SokuLib/blob/51486a0c400201313f6afff1155e8f84bbb9d809/src/Core/Weather.hpp#L11);
+- Byte 211: Active weather (List [here](https://github.com/SokuDev/SokuLib/blob/51486a0c400201313f6afff1155e8f84bbb9d809/src/Core/Weather.hpp#L11));
+- Bytes 212 - 213: Weather timer (0 - 999);
+- Bytes 214 - N: Other objects
 
 Character state:
 - 1 byte: Direction (-1 if facing left or 1 if facing right)
-- 4 bytes: (float) Opponent relative position X
-- 4 bytes: (float) Opponent relative position Y
-- 4 bytes: (float) Distance to back corner
-- 4 bytes: (float) Distance to front corner
-- 4 bytes: (float) Distance to ground
+- 8 bytes: (float, float) Position
 - 2 bytes: Soku action (List [here](https://github.com/SokuDev/SokuLib/blob/51486a0c400201313f6afff1155e8f84bbb9d809/src/Core/CharacterManager.hpp#L25)));
-- 2 bytes: Action block index (Block index in the action);
-- 2 bytes: Animation counter (Animation index);
-- 2 bytes: Animation subframe (Number of frames this animation has been shown);
-- 4 bytes: Frame count (Arbitrary number of frame, sometimes from the beginning of the action but can be reset);
+- 2 bytes: Sequence index (Block index in the action);
+- 2 bytes: Pose index (Animation index);
+- 2 bytes: Pose subframe (Number of frames this pose has been shown);
+- 4 bytes: Frame count (Number of frames this sequence has been shown);
 - 2 bytes: Combo damage;
 - 2 bytes: Combo limit;
-- 1 byte: Air borne (Whether the character is in the air or not);
+- 1 byte: Airborne (Whether the character is in the air or not);
+- 2 bytes: Time stop timer;
+- 2 bytes: Hit stop timer;
 - 2 bytes: Hp left;
 - 1 byte: Air dash count (Number of air movement used);
 - 2 bytes: Spirit left;
 - 2 bytes: Max spirit;
 - 2 bytes: Untech;
 - 2 bytes: Healing charm time left;
+- 2 bytes: Confusion debuff time left;
 - 2 bytes: Sword of rapture debuff time left;
 - 1 byte: Score (0 - 2);
-- 5 bytes: Hand (0xFF means no card);
+- 10 bytes: (byte, byte)\[5\] Hand. First byte is card ID and second is cost, repeated 5 times (Card ID + Cost 0xFF is no card);
+- 2 bytes: Card gauge;
 - 15 bytes: All skills level (0xFF means not learned);
-- 1 byte: Fan level (0 - 4 -> Number of Tengu fan used);
+- 1 byte: Fan level (0 - 4 -> Number of Tengu fan(s) used);
+- 1 byte: Rods level (0 - 4 -> Number of Control rod(s) used);
+- 1 byte: Books level (0 - 4 -> Number of Grimoire(s) used);
+- 1 byte: Doll level (0 - 4 -> Number of Sacrificial Doll(s) used);
+- 1 byte: Drop level (0 - 3 -> Number of Heavenly drop(s) used);
 - 2 bytes: Drop invulnerability time left;
-- 2 bytes: Super armor time left;
-- 2 bytes: Super armor hp left;
-- 2 bytes: Millenium vampire time left;
-- 2 bytes: Philosofer stone time left;
-- 2 bytes: Sakuyas world time left;
-- 2 bytes: Private square time left;
-- 2 bytes: Orreries time left;
-- 2 bytes: Mpp time left;
-- 2 bytes: Kanako cooldown;
-- 2 bytes: Suwako cooldown;
-- 1 bytes: Child objects count
+- 2 bytes: Super armor hp used;
+- 2 bytes: Image index;
+- 20 bytes: Character specific data;
+- 1 byte: Child objects count
 
 Object:
 - 1 byte: Direction;
-- 8 bytes: (float, float) Relative position to spawner (x then y);
-- 8 bytes: (float, float) Relative position to spawner's opponent (x then y);
-- 2 bytes: Soku action;
-- 4 bytes: Image (sprite) index;
+- 8 bytes: (float, float) Position
+- 2 bytes: Action index;
+- 2 bytes: Sequence index;
+- 2 bytes: Hit stop;
+- 2 bytes: Image (sprite) index;
 
 To know the number of objects, look at the child objects field for both states.
-The left character's objects are placed first, followed byt the right character's.
+The left character's objects are placed first, followed by the right character's.
+
+Note that the mod makes no effort to hide information (It will send the actual cards in mountain vapor, and send the actual weather in Aurora).
+It's up to the server to post process the frames to hide the information it needs.
 
 All times are in frames.
 

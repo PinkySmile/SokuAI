@@ -62,7 +62,6 @@ static const std::map<SokuLib::Character, std::array<unsigned short, 20>> charac
 	{SokuLib::CHARACTER_SANAE,     {}},
 	{SokuLib::CHARACTER_SATORI,    {}},
 	{SokuLib::CHARACTER_SEKIBANKI, {}},
-	{SokuLib::CHARACTER_SHINKI,    {}},
 	{SokuLib::CHARACTER_SHOU,      {}},
 	{SokuLib::CHARACTER_SUIKA,     {}},
 	{SokuLib::CHARACTER_SUWAKO,    {}},

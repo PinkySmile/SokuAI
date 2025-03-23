@@ -2,9 +2,21 @@
 // Created by PinkySmile on 21/05/2021.
 //
 
+#ifndef _WIN32
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <cstring>
+#include <sys/wait.h>
+#include <fcntl.h>
+#include "winDefines.hpp"
+#else
+#define SocketError WSAErrorException
+#define s_addr S_un.S_addr
+#endif
+
 #include "GameInstance.hpp"
 #include "Exceptions.hpp"
-#include "../TrainingMod/Packet.hpp"
+#include "Packet.hpp"
 
 namespace Trainer
 {
@@ -162,23 +174,22 @@ namespace Trainer
 		_port(port)
 	{
 		sockaddr_in sockaddrIn;
+#ifdef _WIN32
 		WSADATA WSAData;
 
 		if (WSAStartup(MAKEWORD(2, 2), &WSAData))
-			throw WSAErrorException("WSAStartup");
+			throw SocketError("WSAStartup");
+#endif
 
 		this->_baseSocket = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
 		sockaddrIn.sin_family = AF_INET;
 		sockaddrIn.sin_port = htons(port);
-		sockaddrIn.sin_addr.S_un.S_un_b.s_b1 = 127;
-		sockaddrIn.sin_addr.S_un.S_un_b.s_b2 = 0;
-		sockaddrIn.sin_addr.S_un.S_un_b.s_b3 = 0;
-		sockaddrIn.sin_addr.S_un.S_un_b.s_b4 = 1;
+		sockaddrIn.sin_addr.s_addr = 0x0100007F;
 		if (bind(this->_baseSocket, reinterpret_cast<struct sockaddr *>(&sockaddrIn), sizeof(sockaddrIn)) < 0)
-			throw WSAErrorException("bind");
+			throw SocketError("bind");
 		if (listen(this->_baseSocket, 1))
-			throw WSAErrorException("listen");
+			throw SocketError("listen");
 	}
 
 	void GameInstance::reconnect(const std::string &path, const char *iniPath, bool justConnect)
@@ -195,6 +206,7 @@ namespace Trainer
 		}
 		printf("Starting instance %s %s %u %s\n", path.c_str(), iniPath, this->_port, justConnect ? "true" : "false");
 		if (!justConnect) {
+#ifdef _WIN32
 			std::string cmdLine = "\"" + path + "\" ";
 			char buffer[32767];
 			STARTUPINFOA startupInfo;
@@ -241,6 +253,31 @@ namespace Trainer
 				throw SystemCallFailedException("CreateProcessA");
 			if (!SetPriorityClass(this->_processInformation.hProcess, HIGH_PRIORITY_CLASS))
 				throw SystemCallFailedException("SetPriorityClass");
+#else
+			auto p = std::to_string(this->_port);
+			std::array<const char *, 4> args {
+				"wine",
+				path.c_str(),
+				p.c_str(),
+				nullptr
+			};
+
+			this->_pid = fork();
+			if (this->_pid == 0) {
+				int fd = open("/dev/null", O_RDWR);
+
+				close(0);
+				close(1);
+				close(2);
+				dup2(fd, 0);
+				dup2(fd, 1);
+				dup2(fd, 2);
+				close(fd);
+				execvp("wine", const_cast<char * const *>(args.data()));
+				exit(1);
+			} else if (this->_pid < 0)
+				throw LinuxException("execvp(\"wine\")");
+#endif
 		}
 		this->_socket = ::accept(this->_baseSocket, nullptr, nullptr);
 		packet.op = OPCODE_HELLO;
@@ -403,28 +440,41 @@ namespace Trainer
 			throw ProtocolError(result->error.error);
 	}
 
-	DWORD GameInstance::terminate()
+	int GameInstance::terminate()
 	{
-		if (this->_processInformation.hProcess != INVALID_HANDLE_VALUE) {
-			puts("Terminating process...");
-			TerminateProcess(this->_processInformation.hProcess, 0);
-			WaitForSingleObject(this->_processInformation.hProcess, INFINITE);
+#ifdef _WIN32
+		if (this->_processInformation.hProcess == INVALID_HANDLE_VALUE)
+			return -1;
+		puts("Terminating process...");
+		TerminateProcess(this->_processInformation.hProcess, 0);
+		WaitForSingleObject(this->_processInformation.hProcess, INFINITE);
 
-			auto code = this->getExitCode();
-
-			CloseHandle(this->_processInformation.hThread);
-			this->_processInformation.hProcess = INVALID_HANDLE_VALUE;
-			return code;
-		}
-		return -1;
-	}
-
-	DWORD GameInstance::getExitCode()
-	{
-		DWORD result;
+		DWORD code;
 
 		GetExitCodeProcess(this->_processInformation.hProcess, &result);
-		return result;
+		CloseHandle(this->_processInformation.hThread);
+		this->_processInformation.hProcess = INVALID_HANDLE_VALUE;
+		return code;
+#else
+		if (!this->_pid)
+			return -1;
+
+		int status;
+		pid_t pid = this->_pid;
+
+		this->_pid = 0;
+		puts("Terminating process...");
+		if (kill(pid, SIGKILL) < 0)
+			return -errno;
+		do {
+			if (waitpid(pid, &status, 0) < 0)
+				return -errno;
+			if (WIFSIGNALED(status))
+				return WTERMSIG(status) | 0x80;
+			if (WIFEXITED(status))
+				return WEXITSTATUS(status);
+		} while (true);
+#endif
 	}
 
 	void GameInstance::restrictMoves(std::vector<SokuLib::Action> blackList)

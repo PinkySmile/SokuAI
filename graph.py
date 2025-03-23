@@ -195,6 +195,8 @@ outputs = [
 d = {}
 t = {}
 p = {}
+nbNeurons = 1000
+idMod = 0x3FF
 
 file = open(sys.argv[1], "rb")
 data = file.read()
@@ -209,25 +211,25 @@ for i in range(0, len(data), 8):
 	output = int.from_bytes(data[i+4:i+6], byteorder="little")
 	wgt	= int.from_bytes(data[i+6:i+8], byteorder="little")
 
-	input  &= 0x1FF
-	output &= 0x1FF
+	input  &= idMod
+	output &= idMod
 	if isI:
 		if input >= len(inputs):
 			continue
 		input = inputs[input]
-	elif input > 500:
+	elif input > nbNeurons:
 		continue
 	else:
-		input = "N{:X}".format(input)
+		input = "N{:d}".format(input)
 	if isO:
 		if output >= len(outputs):
 			continue
 		output = outputs[output]
 		o = True
-	elif output > 500:
+	elif output > nbNeurons:
 		continue
 	else:
-		output = "N{:X}".format(output)
+		output = "N{:d}".format(output)
 	if wgt & 0x8000:
 		wgt -= 0x10000
 	if not wgt:

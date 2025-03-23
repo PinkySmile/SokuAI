@@ -141,7 +141,6 @@ namespace Trainer
 #ifndef _DEBUG
 			catch (std::exception &e) {
 				std::cerr << e.what() << std::endl;
-				throw;
 			}
 #endif
 		}

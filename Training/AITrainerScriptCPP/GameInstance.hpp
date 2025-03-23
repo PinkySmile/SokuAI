@@ -6,8 +6,16 @@
 #define SOKUAI_GAMEINSTANCE_HPP
 
 
+#include <vector>
+#include <string>
+#ifdef _WIN32
 #include <SokuLib.hpp>
 #include <Windows.h>
+#else
+#include <Weather.hpp>
+#include <Action.hpp>
+#include "winDefines.hpp"
+#endif
 #include "Packet.hpp"
 
 namespace Trainer
@@ -54,13 +62,16 @@ namespace Trainer
 		void setHealth(unsigned short left, unsigned short right);
 		void setWeather(SokuLib::Weather weather, int timer, bool freezeTimer = false);
 		void restrictMoves(std::vector<SokuLib::Action> blackList);
-		DWORD terminate();
-		DWORD getExitCode();
+		int terminate();
 	private:
 		SOCKET _baseSocket = INVALID_SOCKET;
 		SOCKET _socket = INVALID_SOCKET;
-		PROCESS_INFORMATION _processInformation;
 		unsigned short _port;
+#ifdef _WIN32
+		PROCESS_INFORMATION _processInformation;
+#else
+		pid_t _pid = 0;
+#endif
 
 		GameFrame _recvGameFrame(int timeout);
 	};

@@ -101,7 +101,7 @@ static void fillState(const SokuLib::CharacterManager &source, const SokuLib::Ch
 	destination.frameCount = source.objectBase.frameCount;
 	destination.comboDamage = source.combo.damages;
 	destination.comboLimit = source.combo.limit;
-	destination.airBorne = source.objectBase.frameData.frameFlags.airborne;
+	destination.airBorne = source.objectBase.frameData->frameFlags.airborne;
 	destination.hp = source.objectBase.hp;
 	destination.airDashCount = source.airdashCount;
 	destination.spirit = source.currentSpirit;
@@ -139,7 +139,7 @@ static void fillState(const SokuLib::ObjectManager &object, const SokuLib::Chara
 	destination.relativePosOpponent.x = object.position.x - opponent.objectBase.position.x;
 	destination.relativePosOpponent.y = object.position.y - opponent.objectBase.position.y;
 	destination.action = object.action;
-	destination.imageID = object.image.number;
+	destination.imageID = object.image->number;
 }
 
 void __fastcall KeymapManagerSetInputs(SokuLib::KeymapManager *This)
@@ -542,7 +542,7 @@ int __fastcall CBattle_OnProcess(SokuLib::Battle *This) {
 
 	int ret = (This->*s_origCBattle_OnProcess)();
 
-	if (SokuLib::menuManager.isInMenu && ret == SokuLib::SCENE_BATTLE)
+	if (!SokuLib::menuManager.empty() && ret == SokuLib::SCENE_BATTLE)
 		return ret;
 	if (!gameFinished) {
 		size_t allocSize = sizeof(Trainer::GameFramePacket) + (battle.leftCharacterManager.objects.list.size + battle.rightCharacterManager.objects.list.size) * sizeof(Trainer::Object);
@@ -624,7 +624,6 @@ extern "C" __declspec(dllexport) bool Initialize(HMODULE hMyModule, HMODULE hPar
 	int newOffset = (int)KeymapManagerSetInputs - PAYLOAD_NEXT_INSTR_GET_INPUTS;
 	s_origKeymapManager_SetInputs = SokuLib::union_cast<void (SokuLib::KeymapManager::*)()>(*(int *)PAYLOAD_ADDRESS_GET_INPUTS + PAYLOAD_NEXT_INSTR_GET_INPUTS);
 	*(int *)PAYLOAD_ADDRESS_GET_INPUTS = newOffset;
-	*(int *)0x47d7a0 = 0xC3;
 	VirtualProtect((PVOID)TEXT_SECTION_OFFSET, TEXT_SECTION_SIZE, old, &old);
 
 	::FlushInstructionCache(GetCurrentProcess(), nullptr, 0);
