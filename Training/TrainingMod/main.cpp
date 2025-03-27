@@ -174,10 +174,11 @@ int __fastcall CBattle_OnProcess(SokuLib::Battle *This) {
 			sendState(battle);
 			gameFinished |= battle.leftCharacterManager.score == 2 || battle.rightCharacterManager.score == 2;
 			while (!cancel && !gameFinished && !isStopped() && !inputsReceived);
+			if (gameFinished)
+				sendGameResult(battle);
 		}
 		if (ret != SokuLib::SCENE_BATTLE || cancel) {
 			gameFinished = false;
-			sendGameResult(battle);
 			return SokuLib::SCENE_TITLE;
 		}
 		if (isStopped())

@@ -1,3 +1,4 @@
+import select
 import socket
 import subprocess
 import struct
@@ -77,6 +78,7 @@ class ProtocolError(Exception):
 
 class InvalidPacketError(Exception):
     def __init__(self, packet):
+        self.packet = packet
         super().__init__("The received packet is malformed: " + str(packet))
 
 
@@ -159,6 +161,9 @@ class GameInstance:
         def init(self, opponent, objects):
             self.opponent = opponent
             self.objects = objects
+            for o in objects:
+                o.owner = self
+                o.opponent = opponent
 
         def dict(self):
             result = self.data.copy()
@@ -199,12 +204,12 @@ class GameInstance:
                 }
             if item == "relativePosMe":
                 return {
-                    'x': self.position["x"] - self.owner.position["x"] if self.direction == -1 else self.owner.position["x"].x - self.position["x"],
+                    'x': self.position["x"] - self.owner.position["x"] if self.direction == -1 else self.owner.position["x"] - self.position["x"],
                     'y': self.position["y"] - self.owner.position["y"]
                 }
             if item == "relativePosOpponent":
                 return {
-                    'x': self.position["x"] - self.opponent.position["x"] if self.direction == -1 else self.opponent.position["x"].x - self.position["x"],
+                    'x': self.position["x"] - self.opponent.position["x"] if self.direction == -1 else self.opponent.position["x"] - self.position["x"],
                     'y': self.position["y"] - self.opponent.position["y"]
                 }
             if item in self.data:
@@ -227,6 +232,7 @@ class GameInstance:
         "active",
         "timer"
     ]
+    EMPTY_INPUT = {"A": False, "B": False, "C": False, "D": False, "SC": False, "SW": False, "H": 0, "V": 0}
 
     def __init__(self, exe_path, port=10800, just_connect=False):
         print(f"Starting instance {exe_path} {port} {just_connect}")
@@ -252,17 +258,20 @@ class GameInstance:
             if err != 12:
                 return
             self.socket.send(bytes([OPCODE_GAME_CANCEL]))
-            if self.socket.recv(1)[0] == OPCODE_ERROR:
+            op = self.socket.recv(1)[0]
+            if op == OPCODE_ERROR:
                 err = self.socket.recv(1)[0]
                 if err != 17:
                     return
                 continue
             try:
-                self.recv_game_frame()
+                self.tick({ "left": self.EMPTY_INPUT, "right": self.EMPTY_INPUT })
             except GameEndedException:
                 pass
             except ProtocolError:
                 pass
+            except TimeoutError:
+                continue
 
     def reconnect(self):
         if not self.just_connect:
@@ -284,7 +293,11 @@ class GameInstance:
         if packet != self.socket.recv(6):
             raise InvalidHandshakeError()
 
-    def recv_game_frame(self):
+    def recv_game_frame(self, can_timeout=True):
+        if can_timeout:
+            r, w, x = select.select([self.socket], [], [], 1)
+            if not r:
+                raise TimeoutError()
         byte = self.socket.recv(1)
         if not len(byte):
             raise ConnectionResetError()
@@ -298,7 +311,6 @@ class GameInstance:
             raise InvalidPacketError(byte)
         byte = self.socket.recv(214)
         if len(byte) != 214:
-            print(byte)
             raise InvalidPacketError(byte)
         result = {
             "left": self.PlayerState(byte[:105]),
@@ -331,7 +343,7 @@ class GameInstance:
         self.socket.send(packet)
         if self.socket.recv(1)[0] == OPCODE_ERROR:
             raise ProtocolError(self.socket.recv(1)[0])
-        return self.recv_game_frame()
+        return self.recv_game_frame(False)
 
     def quit(self):
         try:
@@ -346,8 +358,8 @@ class GameInstance:
             self.socket = None
 
     def tick(self, inputs):
-        l = inputs["left"]
-        r = inputs["right"]
+        l = {i: int(j) for i, j in inputs["left"].items()}
+        r = {i: int(j) for i, j in inputs["right"].items()}
         left = ((l["A"] & 1) << 0) | \
                ((l["B"] & 1) << 1) | \
                ((l["C"] & 1) << 2) | \
@@ -411,5 +423,10 @@ class GameInstance:
 
     def set_weather(self, weather, timer, freeze_timer=False):
         self.socket.send(struct.pack('<BIH?', OPCODE_SET_WEATHER, weather, timer, freeze_timer))
+        if self.socket.recv(1)[0] == OPCODE_ERROR:
+            raise ProtocolError(self.socket.recv(1)[0])
+
+    def set_restricted_moves(self, moves):
+        self.socket.send(struct.pack('<BB{}H'.format(len(moves)), OPCODE_RESTRICT_MOVES, len(moves), *moves))
         if self.socket.recv(1)[0] == OPCODE_ERROR:
             raise ProtocolError(self.socket.recv(1)[0])
