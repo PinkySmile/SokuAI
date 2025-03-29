@@ -4,7 +4,7 @@ import tqdm
 from tensordict import TensorDict
 from tensordict.nn import TensorDictModule
 from torch import nn, optim
-from torchrl.envs import CatTensors, TransformedEnv
+from torchrl.envs import CatTensors, TransformedEnv, UnsqueezeTransform
 
 from Soku.Env import SokuEnv
 from Soku.characters import REMILIA
@@ -21,11 +21,9 @@ while True:
         break
     except OSError:
         port += 1
-cat_transform = CatTensors(in_keys=[
+in_keys = [
     ('params', 'left', 'character'),
-    ('params', 'left', 'deck'),
     ('params', 'right', 'character'),
-    ('params', 'right', 'deck'),
     ('left', 'opponentRelativePos.x'),
     ('left', 'opponentRelativePos.y'),
     ('left', 'score'),
@@ -46,8 +44,17 @@ cat_transform = CatTensors(in_keys=[
     ('right', 'frameCount'),
     ('right', 'comboDamage'),
     ('right', 'time_idle')
-], dim=-1, out_key="observation", del_keys=False)
-env = TransformedEnv(env, cat_transform)
+]
+env = TransformedEnv(
+    env,
+    # ``Unsqueeze`` the observations that we will concatenate
+    UnsqueezeTransform(
+        dim=-1,
+        in_keys=in_keys,
+        in_keys_inv=[],
+    ),
+)
+env.append_transform(CatTensors(in_keys=in_keys, dim=-1, out_key="observation", del_keys=False))
 net = nn.Sequential(
     nn.LazyLinear(64),
     nn.Tanh(),
@@ -55,7 +62,7 @@ net = nn.Sequential(
     nn.Tanh(),
     nn.LazyLinear(64),
     nn.Tanh(),
-    nn.LazyLinear(5),
+    nn.LazyLinear(10),
 )
 policy = TensorDictModule(
     net,
@@ -63,19 +70,19 @@ policy = TensorDictModule(
     out_keys=["action"],
 )
 optimizer = optim.Adam(policy.parameters(), lr=2e-3)
-batch_size = 32
+batch_size = 1
 pbar = tqdm.tqdm(range(20_000 // batch_size))
 scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, 20_000)
 logs = {"return": [], "last_reward": []}
 init_params = TensorDict({
-    "params": {
-        "left": { "character": REMILIA, "deck": [0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4], "palette": 0, "name": "Test1" },
-        "right": { "character": REMILIA, "deck": [0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4], "palette": 1, "name": "Test2" },
+    "params": TensorDict({
+        "left": TensorDict({ "character": REMILIA, "deck": [0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4], "palette": 0, "name": "Test1" }),
+        "right": TensorDict({ "character": REMILIA, "deck": [0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4], "palette": 1, "name": "Test2" }),
         "stage": 0,
         "music": 0,
         "vs_com": False
-    }
-})
+    }, [])
+}, []).expand(batch_size).contiguous()
 
 for _ in pbar:
     init_td = env.reset(init_params)

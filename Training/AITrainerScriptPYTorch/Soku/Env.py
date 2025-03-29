@@ -54,18 +54,18 @@ def post_process_player(old, opp, me, weathers):
     return d
 
 
-def tensor_from_state(old, frame, params):
+def tensor_from_state(old, frame, params, shape):
     weathers = frame["weather"]
     left  = post_process_player(None if old is None else old["left"], frame["right"], frame["left"],  weathers)
     right = post_process_player(None if old is None else old["right"], frame["left"], frame["right"], weathers)
     if weathers["displayed"] == AURORA and weathers["active"] != CLEAR:
         weathers["active"] = AURORA
     return TensorDict({
-        "params": {
-            "left":  { "character": params["left"]["character"],  "deck": params["left"]["deck"] },
-            "right": { "character": params["right"]["character"], "deck": params["right"]["deck"] },
-        },
-        "left": {
+        "params": TensorDict({
+            "left":  TensorDict({ "character": params["left"]["character"] }),
+            "right": TensorDict({ "character": params["right"]["character"] }),
+        }),
+        "left": TensorDict({
             "hp": left["hp"],
             "opponentRelativePos.x": left["opponentRelativePos.x"],
             "opponentRelativePos.y": left["opponentRelativePos.y"],
@@ -75,10 +75,10 @@ def tensor_from_state(old, frame, params):
             "poseFrame": left["poseFrame"],
             "frameCount": left["frameCount"],
             "comboDamage": left["comboDamage"],
-            "time_idle": left["time_idle"]
-        },
-        "right": {
-            "hp": left["hp"],
+            "time_idle": left["time_idle"],
+        }),
+        "right": TensorDict({
+            "hp": right["hp"],
             "opponentRelativePos.x": right["opponentRelativePos.x"],
             "opponentRelativePos.y": right["opponentRelativePos.y"],
             "score": right["score"],
@@ -87,9 +87,14 @@ def tensor_from_state(old, frame, params):
             "poseFrame": right["poseFrame"],
             "frameCount": right["frameCount"],
             "comboDamage": right["comboDamage"],
-            "time_idle": right["time_idle"]
-        }
-    })
+            "time_idle": right["time_idle"],
+        }),
+        "weather": TensorDict({
+            "active": weathers["active"],
+            "displayed": weathers["displayed"],
+            "timer": weathers["timer"],
+        })
+    }).unsqueeze(-1)
 
 
 class SokuEnv(GameInstance, EnvBase):
@@ -113,7 +118,8 @@ class SokuEnv(GameInstance, EnvBase):
             return self.last_state
         assert self.playing
         try:
-            action = tensordict["action"]
+            tensordict = tensordict[0]
+            action = list(tensordict["action"]) + [0] * 10
             frame = self.tick({
                 "left":  {"A": action[0],  "B": action[1],  "C": action[2],  "D": action[3],  "SC": action[4],  "SW": action[5],  "H": action[6]  - action[7],  "V": action[8]  - action[9]},
                 "right": {"A": action[10], "B": action[11], "C": action[12], "D": action[13], "SC": action[14], "SW": action[15], "H": action[16] - action[17], "V": action[18] - action[19]}
@@ -128,24 +134,24 @@ class SokuEnv(GameInstance, EnvBase):
                     mod = True
                 if mod:
                     GameInstance.set_health(self, self.last_state["left"]["hp"], self.last_state["right"]["hp"])
-            new_state = tensor_from_state(None, frame, self.last_state["params"])
+            new_state = tensor_from_state(None, frame, self.last_state["params"], tensordict.shape)
             reward = compute_reward(self.last_state, new_state)
-            new_state["done"] = False
-            new_state["reward"] = reward
+            new_state["done"] = [False]
+            new_state["reward"] = [reward[0]]
             self.last_state = new_state
             return self.last_state
         except GameEndedException as e:
             if e.winner == 0:
-                self.last_state["reward"] = [DRAW_PENALTY, DRAW_PENALTY]
+                self.last_state["reward"] = [DRAW_PENALTY]
             elif e.winner == 1:
-                self.last_state["reward"] = [WIN_BONUS, LOSE_PENALTY]
+                self.last_state["reward"] = [WIN_BONUS]
             else:
-                self.last_state["reward"] = [LOSE_PENALTY, WIN_BONUS]
-            self.last_state["done"] = True
+                self.last_state["reward"] = [LOSE_PENALTY]
+            self.last_state["done"] = [True]
             return self.last_state
         except GameCrashedError:
-            self.last_state["reward"] = [CRASH_PENALTY, CRASH_PENALTY]
-            self.last_state["done"] = True
+            self.last_state["reward"] = [CRASH_PENALTY]
+            self.last_state["done"] = [True]
             self.reconnect()
             return self.last_state
 
@@ -161,31 +167,31 @@ class SokuEnv(GameInstance, EnvBase):
                 }
             })
         self.wait_for_ready()
-        self.start_game(tensordict["params"], tensordict["params"]["vs_com"])
-        self.last_state = tensor_from_state(None, self.tick({ "left": self.EMPTY_INPUT, "right": self.EMPTY_INPUT }), tensordict["params"])
-        self.last_state["reward"] = [0, 0]
-        self.last_state["done"] = False
+        self.start_game(tensordict[0]["params"], tensordict[0]["params"]["vs_com"])
+        self.last_state = tensor_from_state(None, self.tick({ "left": self.EMPTY_INPUT, "right": self.EMPTY_INPUT }), tensordict[0]["params"], tensordict.shape)
+        self.last_state[0]["reward"] = [[0, 0]]
+        self.last_state[0]["done"] = [False]
         self.playing = True
         return self.last_state
 
     def set_health(self, left, right):
         GameInstance.set_health(self, left, right)
         self.force_health = [left, right]
-        self.last_state["left"]["hp"] = left
-        self.last_state["right"]["hp"] = right
+        self.last_state["left"]["hp"] = [left]
+        self.last_state["right"]["hp"] = [right]
 
     def set_positions(self, left, right):
         GameInstance.set_positions(self, left, right)
-        self.last_state["left"]["position.x"] = left["x"]
-        self.last_state["left"]["position.y"] = left["y"]
-        self.last_state["right"]["position.x"] = right["x"]
-        self.last_state["right"]["position.y"] = right["y"]
+        self.last_state["left"]["position.x"] = [left["x"]]
+        self.last_state["left"]["position.y"] = [left["y"]]
+        self.last_state["right"]["position.x"] = [right["x"]]
+        self.last_state["right"]["position.y"] = [right["y"]]
 
     def set_weather(self, weather, timer, freeze_timer=True):
         GameInstance.set_weather(self, weather, timer, freeze_timer)
-        #self.last_state["weather"]["timer"] = timer
-        #self.last_state["weather"]["active"] = weather
-        #self.last_state["weather"]["displayed"] = weather
+        self.last_state["weather"]["timer"] = [timer]
+        self.last_state["weather"]["active"] = [weather]
+        self.last_state["weather"]["displayed"] = [weather]
 
 
     def _make_spec(self):
@@ -274,11 +280,11 @@ class SokuEnv(GameInstance, EnvBase):
             ),
             left=state_composite.clone(),
             right=state_composite,
-            #weather=Composite(
-            #    timer=Bounded(low=0, high=999, dtype=torch.int64, shape=1),
-            #    active=Bounded(low=0, high=21, dtype=torch.uint8, shape=1),
-            #    display=Bounded(low=0, high=21, dtype=torch.uint8, shape=1)
-            #)
+            weather=Composite(
+                timer=Bounded(low=0, high=999, dtype=torch.int64, shape=1),
+                active=Bounded(low=0, high=21, dtype=torch.uint8, shape=1),
+                display=Bounded(low=0, high=21, dtype=torch.uint8, shape=1)
+            )
         )
         # since the environment is stateless, we expect the previous output as input.
         # For this, ``EnvBase`` expects some state_spec to be available
