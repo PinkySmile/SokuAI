@@ -351,13 +351,13 @@ class GameInstance:
             if self.socket.recv(1) == OPCODE_ERROR:
                 raise ProtocolError(self.socket.recv(1))
             self.socket.close()
-            self.socket = None
         except ConnectionResetError:
-            self.socket = None
+            pass
         except BrokenPipeError:
-            self.socket = None
+            pass
+        self.socket = None
 
-    def tick(self, inputs):
+    def send_inputs(self, inputs):
         l = {i: int(j) for i, j in inputs["left"].items()}
         r = {i: int(j) for i, j in inputs["right"].items()}
         left = ((l["A"] & 1) << 0) | \
@@ -377,6 +377,9 @@ class GameInstance:
                 ((((r["H"] > 0) - (r["H"] < 0)) & 3) << 6) | \
                 ((((r["V"] > 0) - (r["V"] < 0)) & 3) << 8)
         self.socket.send(struct.pack('<BHH', OPCODE_GAME_INPUTS, left, right))
+
+    def tick(self, inputs):
+        self.send_inputs(inputs)
         return self.recv_game_frame()
 
     def set_game_speed(self, tps):

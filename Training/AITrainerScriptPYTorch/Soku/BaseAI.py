@@ -1,5 +1,5 @@
 import random
-import DeckFactory
+from .DeckFactory import DeckFactory
 
 
 class BaseAI:
@@ -289,7 +289,7 @@ class BaseAI:
     def __init__(self, char, palette):
         self.chr = char
         self.palette = palette
-        self.deck_factory = DeckFactory.DeckFactory()
+        self.deck_factory = DeckFactory()
 
     def on_win(self, my_score, opponent_score):
         pass

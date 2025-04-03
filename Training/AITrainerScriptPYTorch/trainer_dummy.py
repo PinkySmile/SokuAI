@@ -1,12 +1,14 @@
 #!/bin/env python3
 import sys
 import tqdm
+import torch
+import time
 from tensordict import TensorDict
 from tensordict.nn import TensorDictModule
 from torch import nn, optim
 from torchrl.envs import CatTensors, TransformedEnv, UnsqueezeTransform
 
-from Soku.Env import SokuEnv
+from Soku.Env import MoveBasedSokuEnv
 from Soku.characters import REMILIA
 from Soku.weathers import CLEAR
 
@@ -14,13 +16,8 @@ if len(sys.argv) < 3:
     print("Usage:", sys.argv[0], "<game_path> [<SWRSToys.ini>]")
 
 client = sys.argv[1]
-port = 10800
-while True:
-    try:
-        env = SokuEnv(client, port)
-        break
-    except OSError:
-        port += 1
+action_list = ["6a", "nothing", "forward", "backward"]
+env = MoveBasedSokuEnv(client, action_list, start_port=10800)
 in_keys = [
     ('params', 'left', 'character'),
     ('params', 'right', 'character'),
@@ -55,14 +52,15 @@ env = TransformedEnv(
     ),
 )
 env.append_transform(CatTensors(in_keys=in_keys, dim=-1, out_key="observation", del_keys=False))
+torch.manual_seed(time.time())
 net = nn.Sequential(
-    nn.LazyLinear(64),
-    nn.Tanh(),
-    nn.LazyLinear(64),
-    nn.Tanh(),
-    nn.LazyLinear(64),
-    nn.Tanh(),
-    nn.LazyLinear(10),
+    nn.Linear(len(in_keys), 128),
+    nn.ReLU(),
+    nn.Linear(128, 512),
+    nn.ReLU(),
+    nn.Linear(512, 512),
+    nn.ReLU(),
+    nn.Linear(512, len(action_list)),
 )
 policy = TensorDictModule(
     net,
@@ -76,7 +74,7 @@ scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, 20_000)
 logs = {"return": [], "last_reward": []}
 init_params = TensorDict({
     "params": TensorDict({
-        "left": TensorDict({ "character": REMILIA, "deck": [0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4], "palette": 0, "name": "Test1" }),
+        "left":  TensorDict({ "character": REMILIA, "deck": [0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4], "palette": 0, "name": "Test1" }),
         "right": TensorDict({ "character": REMILIA, "deck": [0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4], "palette": 1, "name": "Test2" }),
         "stage": 0,
         "music": 0,
@@ -84,21 +82,22 @@ init_params = TensorDict({
     }, [])
 }, []).expand(batch_size).contiguous()
 
+env.set_game_volume(0, 0)
+env.set_game_speed(100000)
+env.set_display_mode(False)
 for _ in pbar:
     init_td = env.reset(init_params)
     env.set_health(100, 100)
     env.set_weather(CLEAR, 0, True)
     env.set_restricted_moves([200, 201])
-    rollout = env.rollout(3600, policy, tensordict=init_td, auto_reset=False)
-    traj_return = rollout["next", "reward", 0].mean()
+    rollout = env.rollout(600, policy, tensordict=init_td, auto_reset=False)
+    traj_return = rollout["next", "reward"].mean()
     (-traj_return).backward()
     gn = nn.utils.clip_grad_norm_(net.parameters(), 1.0)
+    last = rollout[..., -1]['next', 'reward'].mean(dtype=torch.float32)
     optimizer.step()
     optimizer.zero_grad()
-    pbar.set_description(
-        f"reward: {traj_return: 4.4f}, "
-        f"last reward: {rollout[..., -1]['next', 'reward', 0].mean(): 4.4f}, gradient norm: {gn: 4.4}"
-    )
+    pbar.set_description(f"reward: {traj_return: 4.4f}, last reward: {last: 4.4f}, gradient norm: {gn: 4.4}")
     logs["return"].append(traj_return.item())
-    logs["last_reward"].append(rollout[..., -1]["next", "reward", 0].mean().item())
+    logs["last_reward"].append(last.item())
     scheduler.step()

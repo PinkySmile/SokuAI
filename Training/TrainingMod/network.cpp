@@ -132,6 +132,12 @@ static void renderName(SokuLib::Sprite &sprite, const char *name, size_t size, i
 	font.destruct();
 }
 
+static SokuLib::KeymapManager mapManagers[2] = {{(void *)0x85844C, {}, {}, {}, {}, false}, {(void *)0x85844C, {}, {}, {}, {}, false}};
+static SokuLib::KeyManager managers[2] = {
+	{ &mapManagers[0] },
+	{ &mapManagers[1] }
+};
+
 static void startGame(const Trainer::StartGamePacket &startData, bool isCom)
 {
 	SokuLib::leftPlayerInfo.character = startData.leftCharacter;
@@ -157,24 +163,24 @@ static void startGame(const Trainer::StartGamePacket &startData, bool isCom)
 	SokuLib::profile2.file = "SokuAI.pf";
 	printf("%s is fighting against %s\n", SokuLib::profile1.name.operator char *(), SokuLib::profile2.name.operator char *());
 
-	SokuLib::leftPlayerInfo.character = startData.leftCharacter;
-	SokuLib::leftPlayerInfo.palette = startData.leftPalette;
-	SokuLib::leftPlayerInfo.isRight = false;
-	SokuLib::leftPlayerInfo.effectiveDeck.clear();
+	SokuLib::gameParams.leftPlayerInfo.character = startData.leftCharacter;
+	SokuLib::gameParams.leftPlayerInfo.palette = startData.leftPalette;
+	SokuLib::gameParams.leftPlayerInfo.isRight = false;
+	SokuLib::gameParams.leftPlayerInfo.effectiveDeck.clear();
 	for (auto card : startData.leftDeck)
-		SokuLib::leftPlayerInfo.effectiveDeck.push_back(card);
-	SokuLib::rightPlayerInfo.character = startData.rightCharacter;
-	SokuLib::rightPlayerInfo.palette = startData.rightPalette;
-	SokuLib::rightPlayerInfo.isRight = true;
-	SokuLib::rightPlayerInfo.effectiveDeck.clear();
+		SokuLib::gameParams.leftPlayerInfo.effectiveDeck.push_back(card);
+	SokuLib::gameParams.leftPlayerInfo.keyManager = &managers[0];
+	SokuLib::gameParams.rightPlayerInfo.character = startData.rightCharacter;
+	SokuLib::gameParams.rightPlayerInfo.palette = startData.rightPalette;
+	SokuLib::gameParams.rightPlayerInfo.isRight = true;
+	SokuLib::gameParams.rightPlayerInfo.effectiveDeck.clear();
 	for (auto card : startData.rightDeck)
-		SokuLib::rightPlayerInfo.effectiveDeck.push_back(card);
+		SokuLib::gameParams.rightPlayerInfo.effectiveDeck.push_back(card);
+	SokuLib::gameParams.rightPlayerInfo.keyManager = isCom ? nullptr : &managers[1];
+	SokuLib::gameParams.stageId = startData.stageId;
+	SokuLib::gameParams.musicId = startData.musicId;
+	SokuLib::gameParams.randomSeed = time(nullptr);
 
-	*(char *)0x899D0C = startData.stageId;
-	*(char *)0x899D0D = startData.musicId;
-	//Init both inputs
-	((unsigned *)0x00898680)[0] = 0x008986A8;
-	((unsigned *)0x00898680)[1] = isCom ? 0 : 0x008986A8;
 	resetGameState();
 	sendOpcode(Trainer::OPCODE_OK);
 }

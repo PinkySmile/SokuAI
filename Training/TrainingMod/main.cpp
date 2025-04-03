@@ -148,18 +148,20 @@ int __fastcall CLogo_OnProcess(SokuLib::Logo *This) {
 int __fastcall CBattle_OnProcess(SokuLib::Battle *This) {
 	auto &battle = SokuLib::getBattleMgr();
 
-	if (setWeather || freezeWeather) {
-		if (weather == SokuLib::WEATHER_CLEAR)
-			SokuLib::weatherCounter = -1;
-		else if (SokuLib::activeWeather == weather) {
-			SokuLib::weatherCounter = weatherTimer;
-			setWeather = false;
-		}
-	}
 	counter += tps / 60.f;
 	while (counter >= 1) {
+		if (setWeather || freezeWeather) {
+			if (weather == SokuLib::WEATHER_CLEAR)
+				SokuLib::weatherCounter = -1;
+			else if (SokuLib::activeWeather == weather) {
+				SokuLib::weatherCounter = weatherTimer;
+				setWeather = false;
+			}
+		}
 		isFrame = true;
+
 		int ret = (This->*s_origCBattle_OnProcess)();
+
 		isFrame = false;
 		if (std::find(moveBlacklist.begin(), moveBlacklist.end(), battle.leftCharacterManager.objectBase.action) != moveBlacklist.end()) {
 			battle.leftCharacterManager.objectBase.action = SokuLib::ACTION_IDLE;
@@ -192,9 +194,11 @@ int __fastcall CBattle_OnProcess(SokuLib::Battle *This) {
 void LoadSettings(LPCSTR profilePath) {
 	FILE *_;
 
-	/*AllocConsole();
+#ifdef _DEBUG
+	AllocConsole();
 	freopen_s(&_, "CONOUT$", "w", stdout);
-	freopen_s(&_, "CONOUT$", "w", stderr);*/
+	freopen_s(&_, "CONOUT$", "w", stderr);
+#endif
 }
 
 int __stdcall _MessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType)

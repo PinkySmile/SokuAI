@@ -54,7 +54,6 @@ def _step(tensordict):
         tensordict.shape,
 
     )
-    print(out)
     return out
 
 
